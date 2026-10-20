@@ -4,6 +4,10 @@ AREAS = [int(a) for a in str(config.get("areas", "32")).split(",")]
 BUILD = config.get("build", "dev")
 PY = "python -m cim"
 
+# Steps depend on their own code too, so editing a module rebuilds what it produces.
+def code(*modules):
+    return [f"pipeline/cim/{m}.py" for m in modules] + ["pipeline/config.yaml"]
+
 rule all:
     input: f"data/builds/{BUILD}/tileset.json"
 
@@ -21,7 +25,7 @@ rule fetch_city_footprints:
     shell: PY + " fetch city_footprints --area {wildcards.area}"
 
 rule osm_features:
-    input: rules.fetch_osm.output
+    input: rules.fetch_osm.output, code("osm")
     output: "data/work/osm/features.parquet"
     shell: f"{PY} osm"
 
@@ -30,11 +34,12 @@ rule buildings:
         rules.osm_features.output,
         rules.fetch_areas.output,
         "data/raw/city_footprints/area-{area}.geojson",
+        code("buildings", "heights", "areas"),
     output: "data/work/area-{area}/buildings.parquet"
     shell: PY + " buildings --area {wildcards.area}"
 
 rule ground:
-    input: rules.osm_features.output, rules.fetch_areas.output
+    input: rules.osm_features.output, rules.fetch_areas.output, code("ground", "areas")
     output: "data/work/area-{area}/ground.parquet"
     shell: PY + " ground --area {wildcards.area}"
 
@@ -42,6 +47,7 @@ rule tiles:
     input:
         expand("data/work/area-{area}/buildings.parquet", area=AREAS),
         expand("data/work/area-{area}/ground.parquet", area=AREAS),
+        code("tiles", "mesh", "gltf", "frame"),
     output: f"data/builds/{BUILD}/tileset.json"
     params: areas=",".join(map(str, AREAS))
     shell: f"{PY} tiles --areas {{params.areas}} --build {BUILD} && {PY} agent-state"

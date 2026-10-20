@@ -38,26 +38,35 @@ def build(area: int) -> gpd.GeoDataFrame:
     outlines = _polygons(feats[is_outline & ~underground])
     parts = _polygons(feats[is_part & ~underground])
 
-    # Simple 3D Buildings rule: an outline that contains parts is drawn by its parts.
-    if len(parts):
-        pts = gpd.GeoDataFrame(geometry=parts.geometry.representative_point(), crs=parts.crs)
-        hit = gpd.sjoin(pts, outlines[["geometry"]], predicate="within", how="inner")
-        outlines = outlines[~outlines.index.isin(hit["index_right"].unique())]
-
     city = _load_city(area)
     match = _match_city(outlines, city)
     osm_city_ids = {rec["bldg_id"] for rec in match.values()}
+
+    # Simple 3D Buildings rule: an outline that contains parts is drawn by its parts.
+    # The parts inherit the outline's name and city record.
+    parent: dict = {}
+    parent_name: dict = {}
+    if len(parts):
+        pts = gpd.GeoDataFrame(geometry=parts.geometry.representative_point(), crs=parts.crs)
+        hit = gpd.sjoin(pts, outlines[["geometry"]], predicate="within", how="inner")
+        parent = hit["index_right"].groupby(level=0).first().to_dict()
+        names = outlines["name"].groupby(level=0).first()
+        parent_name = {k: names.get(v) for k, v in parent.items()}
+        outlines = outlines[~outlines.index.isin(hit["index_right"].unique())]
 
     rows = []
     for kind, gdf in (("outline", outlines), ("part", parts)):
         for idx, r in gdf.iterrows():
             tags = r.to_dict()
-            city_rec = match.get(idx) if kind == "outline" else None
+            city_rec = match.get(idx if kind == "outline" else parent.get(idx))
+            if kind == "part" and not tags.get("name"):
+                tags["name"] = parent_name.get(idx)
             cid = city_rec["bldg_id"] if city_rec is not None else None
-            h, mh, src = heights.resolve(tags, city_rec["stories"] if city_rec is not None else None,
-                                         r.geometry.area)
+            # A part's height comes from its own tags; the outline's floor count covers the whole building.
+            stories = city_rec["stories"] if city_rec is not None and kind == "outline" else None
+            h, mh, src = heights.resolve(tags, stories, r.geometry.area)
             rows.append({
-                "id": f"chi:{cid}" if city_rec is not None else f"osm:{r['osm_id']}",
+                "id": f"chi:{cid}" if city_rec is not None and kind == "outline" else f"osm:{r['osm_id']}",
                 "osm_id": r["osm_id"],
                 "kind": kind,
                 "name": tags.get("name") or (city_rec["bldg_name1"] if city_rec is not None else None) or None,

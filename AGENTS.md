@@ -21,6 +21,7 @@ The host needs only bash and Docker. Never install Python or Node packages on th
 ./dev build [AREAS] [BUILD]   # e.g. ./dev build 32 dev, or ./dev build 32,8
 ./dev app                     # viewer on http://localhost:5173 (container "web")
 ./dev eval [VIEWS]            # screenshots to eval/out/, exits 1 if a render budget is exceeded
+./dev smoke                   # interaction test: picking and wall collisions
 ./dev test                    # pytest + tsc
 ./dev shell                   # bash in the pipeline container
 ```
@@ -39,7 +40,7 @@ Dependency versions are pinned exactly. When adding or upgrading one, pick a rel
 
 ## Testing instructions
 
-- `./dev test` must pass before every commit.
+- `./dev test` must pass before every commit. After changing the viewer's controls or picking, also run `./dev smoke` (opens a building card, walks into a wall).
 - Add a pytest for new pipeline logic in `pipeline/tests/`. Geometry tests use small synthetic shapes, not downloaded data.
 - **Any change that affects what's rendered** (pipeline output, materials, lighting, camera) needs `./dev eval` before and after. Look at the screenshots in `eval/out/`, and include the relevant before/after images and the draw-call and triangle numbers in the PR description. `UI=1` keeps the panels in the screenshots; `PHONE=1` uses a phone-sized touch viewport (pass them with `docker compose run --rm -e UI=1 eval node render.mjs`).
 - To add a viewpoint, edit `eval/viewpoints.json`. Coordinates are local meters (see below). Name it after the place, not the feature being tested.
@@ -79,6 +80,7 @@ Citywide systems (the L, tree generation, materials) are built as generators tha
 - Missing OSM tags are `None`, not NaN (`load_features` normalizes this). Check with `is None` or truthiness.
 - three.js r186 removed `PCFSoftShadowMap`; use `PCFShadowMap`. The shadow map is resized to the view each frame (`followShadows`).
 - `tileset.json` uses one flat level of tiles (root geometric error 100000, leaves 0). That's fine for a few areas; building the whole city will need a level-of-detail hierarchy.
+- Snakemake rules list their own modules as inputs (`code(...)` in the Snakefile). When a step starts using a new module, add it there, or edits to it won't trigger a rebuild.
 - Inside containers the host UID has no user name. `USER` is set for Snakemake, and the `dev` script exports `UID`/`GID` for compose.
 
 ## Commits and pull requests

@@ -34,6 +34,7 @@ Click the minimap to jump somewhere. Viewpoints from [`eval/viewpoints.json`](ev
 ./dev build 32,8        # build several community areas (Loop + Near North Side)
 ./dev areas             # list all 77 community area numbers
 ./dev test              # pipeline tests and TypeScript check
+./dev smoke             # click-a-building and walk-into-a-wall test in headless Chromium
 ./dev eval              # screenshot every viewpoint into eval/out/ and check render budgets
 ./dev eval riverwalk    # just one viewpoint
 ./dev clean             # delete intermediate files and builds (downloads are kept)

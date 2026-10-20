@@ -3,6 +3,7 @@
 #   ./dev build [AREAS] [BUILD]   build tiles for community areas (default: 32 = Loop, build "dev")
 #   ./dev app                     run the viewer at http://localhost:5173
 #   ./dev eval [VIEWS]            screenshot viewpoints into eval/out/ (starts the viewer if needed)
+#   ./dev smoke                   click a building and walk into a wall in headless Chromium
 #   ./dev test                    pipeline tests + TypeScript check
 #   ./dev areas                   list the 77 community areas
 #   ./dev shell                   shell in the pipeline container
@@ -29,6 +30,10 @@ case "$cmd" in
     docker compose run --rm ${1:+-e VIEWS="$1"} eval sh -c \
       "npm ci --no-audit --no-fund --loglevel=error >/dev/null && node render.mjs"
     ;;
+  smoke)
+    docker compose up -d web >/dev/null
+    docker compose run --rm eval sh -c "npm ci --no-audit --no-fund --loglevel=error >/dev/null && node smoke.mjs"
+    ;;
   test)
     docker compose build -q pipeline
     pipeline pytest -q pipeline/tests
@@ -44,6 +49,6 @@ case "$cmd" in
     rm -rf data/work data/builds
     ;;
   *)
-    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
     ;;
 esac

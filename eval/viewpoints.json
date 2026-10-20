@@ -1,0 +1,12 @@
+{
+  "_comment": "Fixed camera positions for screenshots and checks. Coordinates are local map meters: x east, y north, z up, from State & Madison. mode is 'map' or 'walk'.",
+  "viewpoints": [
+    { "name": "loop-overview", "area": 32, "mode": "map", "position": [1700, -1500, 700], "target": [-150, 50, 40], "note": "The Loop from over the lake, looking northwest" },
+    { "name": "state-and-madison", "area": 32, "mode": "walk", "position": [4, -12, 1.7], "target": [4, 300, 25], "note": "Street level at the origin, looking north up State Street" },
+    { "name": "riverwalk", "area": 32, "mode": "walk", "position": [-250, 574, 1.7], "target": [400, 640, 15], "note": "South bank of the Main Branch at Wells, looking east along the river" },
+    { "name": "willis-tower", "area": 32, "mode": "map", "position": [-150, -1000, 90], "target": [-640, -480, 200], "note": "Willis Tower from the southeast" },
+    { "name": "grant-park", "area": 32, "mode": "walk", "position": [850, -950, 1.7], "target": [0, -650, 90], "note": "Grant Park near Buckingham Fountain, looking west at the skyline" },
+    { "name": "from-the-north", "area": 32, "mode": "map", "position": [-150, 1500, 320], "target": [-150, -100, 30], "note": "The Loop from over the river, looking south into the sun" },
+    { "name": "from-the-lake", "area": 32, "mode": "map", "position": [2600, -150, 60], "target": [0, 0, 90], "note": "Skyline from the lake" }
+  ]
+}

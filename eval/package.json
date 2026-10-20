@@ -1,0 +1,9 @@
+{
+  "name": "chicago-interactive-map-eval",
+  "private": true,
+  "type": "module",
+  "description": "Renders the fixed viewpoints in headless Chromium and records render stats.",
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}

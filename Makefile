@@ -22,14 +22,14 @@ build: image
 	$(RUN) snakemake -s pipeline/Snakefile -d . --cores $(CORES) --config areas=$(AREAS) build=$(BUILD)
 
 app:
-	docker compose up app
+	docker compose up web
 
 eval:
 	docker compose run --rm eval sh -c "npm ci --no-audit --no-fund && node render.mjs"
 
 test: image
 	$(RUN) pytest -q pipeline/tests
-	docker compose run --rm --no-deps app sh -c "corepack pnpm install --frozen-lockfile && corepack pnpm check"
+	docker compose run --rm --no-deps web sh -c "corepack pnpm install --frozen-lockfile && corepack pnpm check"
 
 areas: image
 	$(RUN) python -m cim areas

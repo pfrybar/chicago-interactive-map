@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chicago Interactive Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<canvas id="view" aria-label="3D map of Chicago"></canvas>
+
+<div class="hud" id="hud">
+  <header>
+    <h1>Chicago Interactive Map</h1>
+    <p class="sub" id="build-info">Loading…</p>
+  </header>
+  <div class="seg" role="group" aria-label="How to move">
+    <button type="button" id="mode-map" aria-pressed="true">Map</button>
+    <button type="button" id="mode-walk" aria-pressed="false">Walk</button>
+  </div>
+  <p class="help" id="help"></p>
+  <label class="toggle"><input type="checkbox" id="shadows" checked> Sun shadows</label>
+</div>
+
+<section class="card" id="card" hidden aria-live="polite">
+  <button type="button" class="close" id="card-close" aria-label="Close building details">×</button>
+  <h2 id="card-name"></h2>
+  <dl id="card-rows"></dl>
+</section>
+
+<div class="minimap-host" id="minimap-host"></div>
+<div class="loading" id="loading" hidden>Loading tiles <span id="loading-pct">0%</span></div>
+<div class="stick" id="stick" hidden aria-hidden="true"><div class="knob" id="knob"></div></div>
+<footer class="attribution" id="attribution"></footer>
+<p class="error" id="error" hidden></p>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

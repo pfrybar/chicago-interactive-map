@@ -1,4 +1,6 @@
 # Everything runs in containers; the host only needs Docker. See README.md.
+# The viewer service is called "web", not "app": Chromium forces HTTPS for any
+# host named "app" (.app is an HSTS-preloaded top-level domain).
 services:
   pipeline:
     build: { context: ., dockerfile: docker/pipeline.Dockerfile }
@@ -8,22 +10,23 @@ services:
     volumes: [".:/repo"]
     working_dir: /repo
 
-  app:
+  web:
     image: node:24-bookworm-slim
     user: "${UID:-1000}:${GID:-1000}"
     environment:
       HOME: /tmp
       COREPACK_HOME: /repo/app/node_modules/.corepack
       COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      npm_config_store_dir: /repo/app/node_modules/.pnpm-store
     volumes: [".:/repo"]
     working_dir: /repo/app
     ports: ["5173:5173"]
     command: sh -c "corepack pnpm install --frozen-lockfile && corepack pnpm dev --host 0.0.0.0"
 
   eval:
-    image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION:-1.57.0}-noble
+    image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION:-1.63.0}-noble
     user: "${UID:-1000}:${GID:-1000}"
-    environment: { HOME: /tmp, APP_URL: "http://app:5173" }
+    environment: { HOME: /tmp, APP_URL: "http://web:5173" }
     volumes: [".:/repo"]
     working_dir: /repo/eval
-    depends_on: [app]
+    depends_on: [web]

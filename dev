@@ -3,6 +3,7 @@
 #   ./dev build [AREAS] [BUILD]   build tiles for community areas (default: 32 = Loop, build "dev")
 #   ./dev app                     run the viewer at http://localhost:5173
 #   ./dev eval [VIEWS]            screenshot viewpoints into eval/out/ (starts the viewer if needed)
+#   ./dev share                   public URL for the current build (Cloudflare quick tunnel); ./dev unshare stops it
 #   ./dev smoke                   click a building and walk into a wall in headless Chromium
 #   ./dev test                    pipeline tests + TypeScript check
 #   ./dev areas                   list the 77 community areas
@@ -30,6 +31,21 @@ case "$cmd" in
     docker compose run --rm ${1:+-e VIEWS="$1"} eval sh -c \
       "npm ci --no-audit --no-fund --loglevel=error >/dev/null && node render.mjs"
     ;;
+  share)
+    docker compose up -d preview tunnel
+    echo "Building the viewer and opening a tunnel…"
+    for _ in $(seq 1 90); do
+      url=$(docker compose logs tunnel 2>/dev/null | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1 || true)
+      if [ -n "$url" ] && curl -sf -o /dev/null "http://localhost:4173/"; then
+        echo "$url"; exit 0
+      fi
+      sleep 2
+    done
+    echo "No tunnel URL yet; check: docker compose logs tunnel preview" >&2; exit 1
+    ;;
+  unshare)
+    docker compose stop tunnel preview
+    ;;
   smoke)
     docker compose up -d web >/dev/null
     docker compose run --rm eval sh -c "npm ci --no-audit --no-fund --loglevel=error >/dev/null && node smoke.mjs"
@@ -49,6 +65,6 @@ case "$cmd" in
     rm -rf data/work data/builds
     ;;
   *)
-    sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
     ;;
 esac

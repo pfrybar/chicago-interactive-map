@@ -23,6 +23,27 @@ services:
     ports: ["5173:5173"]
     command: sh -c "corepack pnpm install --frozen-lockfile && corepack pnpm dev --host 0.0.0.0"
 
+  # Production build of the viewer, for sharing. Unlike the dev server it only
+  # serves the built app and the tiles, not the rest of the repository.
+  preview:
+    image: node:24-bookworm-slim
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      HOME: /tmp
+      COREPACK_HOME: /repo/app/node_modules/.corepack
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      npm_config_store_dir: /repo/app/node_modules/.pnpm-store
+    volumes: [".:/repo"]
+    working_dir: /repo/app
+    ports: ["4173:4173"]
+    command: sh -c "corepack pnpm install --frozen-lockfile && corepack pnpm build && corepack pnpm preview --host 0.0.0.0 --port 4173"
+
+  # Public URL via a Cloudflare quick tunnel (random *.trycloudflare.com address, no account).
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    command: tunnel --no-autoupdate --url http://preview:4173
+    depends_on: [preview]
+
   eval:
     image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION:-1.63.0}-noble
     user: "${UID:-1000}:${GID:-1000}"

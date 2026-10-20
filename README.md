@@ -35,6 +35,7 @@ Click the minimap to jump somewhere. Viewpoints from [`eval/viewpoints.json`](ev
 ./dev areas             # list all 77 community area numbers
 ./dev test              # pipeline tests and TypeScript check
 ./dev smoke             # click-a-building and walk-into-a-wall test in headless Chromium
+./dev share             # public link via a Cloudflare quick tunnel (production build); ./dev unshare stops it
 ./dev eval              # screenshot every viewpoint into eval/out/ and check render budgets
 ./dev eval riverwalk    # just one viewpoint
 ./dev clean             # delete intermediate files and builds (downloads are kept)

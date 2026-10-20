@@ -8,7 +8,7 @@ from .areas import area_polygon_local, area_row
 METERS_PER_PIXEL = 8.0
 COLORS = {
     "land": (217, 214, 207), "green": (169, 191, 150), "water": (127, 167, 189),
-    "road": (244, 242, 238), "building": (140, 134, 121),
+    "road": (244, 242, 238), "building": (168, 162, 151),
 }
 
 

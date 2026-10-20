@@ -21,8 +21,10 @@ case "$cmd" in
   build)
     areas="${1:-32}"; build="${2:-dev}"
     docker compose build -q pipeline
+    # FORCE=1 rebuilds the tiles even if Snakemake thinks they're current
+    # (for example after running `python -m cim tiles` by hand).
     pipeline snakemake -s pipeline/Snakefile -d . --cores "${CORES:-$(nproc)}" --resources http=4 \
-      --config areas="$areas" build="$build"
+      ${FORCE:+--forcerun tiles} --config areas="$areas" build="$build"
     ;;
   app)
     docker compose up web

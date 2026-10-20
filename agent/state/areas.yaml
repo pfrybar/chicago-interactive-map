@@ -6,7 +6,8 @@
   name: Rogers Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -15,7 +16,8 @@
   name: West Ridge
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -24,7 +26,8 @@
   name: Uptown
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -33,7 +36,8 @@
   name: Lincoln Square
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -42,7 +46,8 @@
   name: North Center
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -51,7 +56,8 @@
   name: Lake View
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -60,7 +66,8 @@
   name: Lincoln Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -69,7 +76,8 @@
   name: Near North Side
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -78,7 +86,8 @@
   name: Edison Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -87,7 +96,8 @@
   name: Norwood Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -96,7 +106,8 @@
   name: Jefferson Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -105,7 +116,8 @@
   name: Forest Glen
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -114,7 +126,8 @@
   name: North Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -123,7 +136,8 @@
   name: Albany Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -132,7 +146,8 @@
   name: Portage Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -141,7 +156,8 @@
   name: Irving Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -150,7 +166,8 @@
   name: Dunning
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -159,7 +176,8 @@
   name: Montclare
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -168,7 +186,8 @@
   name: Belmont Cragin
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -177,7 +196,8 @@
   name: Hermosa
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -186,7 +206,8 @@
   name: Avondale
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -195,7 +216,8 @@
   name: Logan Square
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -204,7 +226,8 @@
   name: Humboldt Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -213,7 +236,8 @@
   name: West Town
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -222,7 +246,8 @@
   name: Austin
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -231,7 +256,8 @@
   name: West Garfield Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -240,7 +266,8 @@
   name: East Garfield Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -249,7 +276,8 @@
   name: Near West Side
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -258,7 +286,8 @@
   name: North Lawndale
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -267,7 +296,8 @@
   name: South Lawndale
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -276,7 +306,8 @@
   name: Lower West Side
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -295,7 +326,8 @@
   name: Near South Side
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -304,7 +336,8 @@
   name: Armour Square
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -313,7 +346,8 @@
   name: Douglas
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -322,7 +356,8 @@
   name: Oakland
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -331,7 +366,8 @@
   name: Fuller Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -340,7 +376,8 @@
   name: Grand Boulevard
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -349,7 +386,8 @@
   name: Kenwood
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -358,7 +396,8 @@
   name: Washington Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -367,7 +406,8 @@
   name: Hyde Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -376,7 +416,8 @@
   name: Woodlawn
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -385,7 +426,8 @@
   name: South Shore
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -394,7 +436,8 @@
   name: Chatham
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -403,7 +446,8 @@
   name: Avalon Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -412,7 +456,8 @@
   name: South Chicago
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -421,7 +466,8 @@
   name: Burnside
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -430,7 +476,8 @@
   name: Calumet Heights
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -439,7 +486,8 @@
   name: Roseland
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -448,7 +496,8 @@
   name: Pullman
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -457,7 +506,8 @@
   name: South Deering
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -466,7 +516,8 @@
   name: East Side
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -475,7 +526,8 @@
   name: West Pullman
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -484,7 +536,8 @@
   name: Riverdale
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -493,7 +546,8 @@
   name: Hegewisch
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -502,7 +556,8 @@
   name: Garfield Ridge
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -511,7 +566,8 @@
   name: Archer Heights
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -520,7 +576,8 @@
   name: Brighton Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -529,7 +586,8 @@
   name: McKinley Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -538,7 +596,8 @@
   name: Bridgeport
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -547,7 +606,8 @@
   name: New City
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -556,7 +616,8 @@
   name: West Elsdon
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -565,7 +626,8 @@
   name: Gage Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -574,7 +636,8 @@
   name: Clearing
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -583,7 +646,8 @@
   name: West Lawn
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -592,7 +656,8 @@
   name: Chicago Lawn
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -601,7 +666,8 @@
   name: West Englewood
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -610,7 +676,8 @@
   name: Englewood
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -619,7 +686,8 @@
   name: Greater Grand Crossing
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -628,7 +696,8 @@
   name: Ashburn
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -637,7 +706,8 @@
   name: Auburn Gresham
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -646,7 +716,8 @@
   name: Beverly
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -655,7 +726,8 @@
   name: Washington Heights
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -664,7 +736,8 @@
   name: Mount Greenwood
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -673,7 +746,8 @@
   name: Morgan Park
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -682,7 +756,8 @@
   name: Ohare
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false
@@ -691,7 +766,8 @@
   name: Edgewater
   passes:
     massing:
-      status: todo
+      status: done
+      at: '2026-10-20'
     verify:
       status: todo
   stale: false

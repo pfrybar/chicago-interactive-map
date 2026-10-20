@@ -9,6 +9,7 @@ import { Sky } from 'three/addons/objects/Sky.js'
 const SUN_AZIMUTH = 225
 const SUN_ELEVATION = 32
 const SHADOW_SPAN = 700
+const FOG_DENSITY = 0.00014
 /** Ground color, shared with the land layer so the area edge doesn't show. */
 export const LAND = new Color(0.40, 0.39, 0.37)
 
@@ -19,6 +20,8 @@ export interface Stage {
   sun: DirectionalLight
   sunDir: Vector3
   setShadows(on: boolean): void
+  /** Per-frame updates that follow the camera: sky dome position and haze. */
+  followCamera(): void
   /** Center the shadow map on what the camera looks at, sized to roughly what's on screen. */
   followShadows(focus: Vector3, span: number): void
 }
@@ -33,7 +36,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   renderer.shadowMap.type = PCFShadowMap
 
   const scene = new Scene()
-  const camera = new PerspectiveCamera(55, 1, 0.5, 30000)
+  const camera = new PerspectiveCamera(55, 1, 0.5, 150000)
 
   const az = (SUN_AZIMUTH * Math.PI) / 180
   const el = (SUN_ELEVATION * Math.PI) / 180
@@ -41,7 +44,8 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   const sunDir = new Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).normalize()
 
   const sky = new Sky()
-  sky.scale.setScalar(20000)
+  sky.scale.setScalar(100000)
+  sky.renderOrder = -20 // first: the sky writes no depth, so anything drawn before it would be painted over
   const u = sky.material.uniforms
   u.turbidity.value = 4
   u.rayleigh.value = 1.2
@@ -70,20 +74,27 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   scene.add(sun, sun.target)
   scene.add(new HemisphereLight(0xcfdcec, 0x8a8478, 0.45))
 
-  scene.fog = new FogExp2(new Color(0.55, 0.64, 0.75), 0.00014)
+  scene.fog = new FogExp2(new Color(0.55, 0.64, 0.75), FOG_DENSITY)
 
   // Plain ground under and beyond the tiles, so the horizon never shows a void.
   // Drawn first without writing depth, so it can never z-fight with the tiles above it
   // (GPUs with 16-bit depth, common on phones, can't separate a few centimeters far away).
-  const base = new Mesh(new PlaneGeometry(60000, 60000), new MeshLambertMaterial({ color: LAND, depthWrite: false }))
+  const base = new Mesh(new PlaneGeometry(300000, 300000), new MeshLambertMaterial({ color: LAND, depthWrite: false }))
   base.rotation.x = -Math.PI / 2
   base.position.y = -0.05
   base.renderOrder = -10
   base.receiveShadow = true
   scene.add(base)
 
+  const fog = scene.fog as FogExp2
   const stage: Stage = {
     renderer, scene, camera, sun, sunDir,
+    followCamera() {
+      // The sky dome must contain the camera wherever it goes.
+      sky.position.copy(camera.position)
+      // Thin the haze with altitude, so an overview of the whole city stays clear.
+      fog.density = FOG_DENSITY / (1 + Math.max(camera.position.y, 0) / 600)
+    },
     setShadows(on) {
       renderer.shadowMap.enabled = on
       sun.castShadow = on

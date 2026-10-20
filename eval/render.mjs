@@ -32,9 +32,15 @@ const errors = []
 page.on('pageerror', (e) => errors.push(String(e)))
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
 
+// Skip viewpoints in community areas the current build doesn't include.
+const manifest = await (await fetch(`${APP_URL}/builds/manifest.json`)).json()
+const report = await (await fetch(`${APP_URL}/builds/${manifest.current}/report.json`)).json()
+const built = new Set(report.areas.map((a) => a.number))
+
 const results = []
 for (const vp of viewpoints) {
   if (only && !only.includes(vp.name)) continue
+  if (!only && vp.area != null && !built.has(vp.area)) continue
   const t0 = Date.now()
   await page.goto(`${APP_URL}/?view=${vp.name}${UI ? '' : '&eval=1'}`)
   let timedOut = false

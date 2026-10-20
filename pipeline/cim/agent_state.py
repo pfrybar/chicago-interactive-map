@@ -30,10 +30,9 @@ def refresh() -> None:
         n = int(r["number"])
         entry = state.setdefault(n, {"name": r["name"], "passes": {}, "stale": False, "notes": []})
         passes = entry.setdefault("passes", {})
-        if n in built:
-            passes.setdefault("massing", {"status": "done", "at": date.today().isoformat()})
-        else:
-            passes.setdefault("massing", {"status": "todo"})
+        massing = passes.setdefault("massing", {"status": "todo"})
+        if n in built and massing.get("status") != "done":
+            passes["massing"] = {"status": "done", "at": date.today().isoformat()}
         passes.setdefault("verify", {"status": "todo"})
 
     STATE.parent.mkdir(parents=True, exist_ok=True)

@@ -19,3 +19,16 @@ def test_lake_is_on_the_right_of_the_coastline():
     lake = lake_from_coastline([LineString([(0, -200), (0, 200)])], extent)
     assert abs(lake.area - 200 * 100) < 1
     assert lake.centroid.x > 0
+
+
+def test_stack_layers_never_overlap_and_fill_the_tile():
+    from cim.ground import stack
+    tile = box(0, 0, 100, 100)
+    raw = {"road": box(40, -10, 60, 110), "water": box(0, 0, 70, 50), "green": box(-50, -50, 150, 150)}
+    out = stack(raw, tile, ["road", "water", "green"])
+    pieces = list(out.values())
+    assert abs(sum(g.area for g in pieces) - tile.area) < 1e-6
+    for i, a in enumerate(pieces):
+        for b in pieces[i + 1:]:
+            assert a.intersection(b).area < 1e-6
+    assert abs(out["road"].area - 20 * 100) < 1e-6  # the road wins where it crosses water

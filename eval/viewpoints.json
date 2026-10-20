@@ -1,12 +1,20 @@
 {
   "_comment": "Fixed camera positions for screenshots and checks. Coordinates are local map meters: x east, y north, z up, from State & Madison. mode is 'map' or 'walk'.",
   "viewpoints": [
-    { "name": "loop-overview", "area": 32, "mode": "map", "position": [1700, -1500, 700], "target": [-150, 50, 40], "note": "The Loop from over the lake, looking northwest" },
-    { "name": "state-and-madison", "area": 32, "mode": "walk", "position": [4, -12, 1.7], "target": [4, 300, 25], "note": "Street level at the origin, looking north up State Street" },
-    { "name": "riverwalk", "area": 32, "mode": "walk", "position": [-250, 574, 1.7], "target": [400, 640, 15], "note": "South bank of the Main Branch at Wells, looking east along the river" },
-    { "name": "willis-tower", "area": 32, "mode": "map", "position": [-150, -1000, 90], "target": [-640, -480, 200], "note": "Willis Tower from the southeast" },
-    { "name": "grant-park", "area": 32, "mode": "walk", "position": [850, -950, 1.7], "target": [0, -650, 90], "note": "Grant Park near Buckingham Fountain, looking west at the skyline" },
-    { "name": "from-the-north", "area": 32, "mode": "map", "position": [-150, 1500, 320], "target": [-150, -100, 30], "note": "The Loop from over the river, looking south into the sun" },
-    { "name": "from-the-lake", "area": 32, "mode": "map", "position": [2600, -150, 60], "target": [0, 0, 90], "note": "Skyline from the lake" }
+    {"name": "loop-overview", "area": 32, "mode": "map", "position": [1700, -1500, 700], "target": [-150, 50, 40], "note": "The Loop from over the lake, looking northwest"},
+    {"name": "state-and-madison", "area": 32, "mode": "walk", "position": [4, -12, 1.7], "target": [4, 300, 25], "note": "Street level at the origin, looking north up State Street"},
+    {"name": "riverwalk", "area": 32, "mode": "walk", "position": [-250, 574, 1.7], "target": [400, 640, 15], "note": "South bank of the Main Branch at Wells, looking east along the river"},
+    {"name": "willis-tower", "area": 32, "mode": "map", "position": [-150, -1000, 90], "target": [-640, -480, 200], "note": "Willis Tower from the southeast"},
+    {"name": "grant-park", "area": 32, "mode": "walk", "position": [850, -950, 1.7], "target": [0, -650, 90], "note": "Grant Park near Buckingham Fountain, looking west at the skyline"},
+    {"name": "from-the-north", "area": 32, "mode": "map", "position": [-150, 1500, 320], "target": [-150, -100, 30], "note": "The Loop from over the river, looking south into the sun"},
+    {"name": "from-the-lake", "area": 32, "mode": "map", "position": [2600, -150, 60], "target": [0, 0, 90], "note": "Skyline from the lake"},
+    {"name": "city-overview", "area": null, "mode": "map", "position": [9000, -26000, 14000], "target": [-6000, 0, 0], "note": "The whole city from high over the lake to the southeast"},
+    {"name": "wrigley-field", "area": 6, "mode": "map", "position": [-1700, 6800, 260], "target": [-2280, 7373, 10], "note": "Wrigley Field and Wrigleyville, Lake View"},
+    {"name": "lincoln-park-zoo", "area": 7, "mode": "map", "position": [-100, 3800, 250], "target": [-514, 4341, 0], "note": "Lincoln Park Zoo and the South Pond"},
+    {"name": "pilsen-18th-street", "area": 31, "mode": "walk", "position": [-3150, -2688, 1.7], "target": [-2600, -2688, 6], "note": "18th Street at Ashland in Pilsen, looking east"},
+    {"name": "garfield-park-conservatory", "area": 27, "mode": "map", "position": [-6900, -100, 220], "target": [-7428, 479, 5], "note": "Garfield Park and the Conservatory"},
+    {"name": "bungalow-belt", "area": 15, "mode": "map", "position": [-11100, 8150, 120], "target": [-11375, 8448, 0], "note": "Bungalow blocks in Portage Park"},
+    {"name": "hyde-park", "area": 41, "mode": "map", "position": [4300, -10900, 300], "target": [3716, -10153, 15], "note": "Museum of Science and Industry and Jackson Park, Hyde Park"},
+    {"name": "ohare", "area": 76, "mode": "map", "position": [-21500, 9500, 900], "target": [-22957, 10764, 0], "note": "O'Hare terminals"}
   ]
 }

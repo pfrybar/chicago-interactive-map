@@ -147,6 +147,7 @@ async function start() {
     camera.updateMatrixWorld()
     city.update()
     controls.focus(focus)
+    stage.followCamera()
     stage.followShadows(focus, Math.max(camera.position.distanceTo(focus) * 1.6, 300))
     renderer.render(scene, camera)
 

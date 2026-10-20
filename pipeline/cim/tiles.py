@@ -48,10 +48,20 @@ GROUND_ORDER = ["path", "road", "water", "sand", "green", "land"]
 GROUND_CELL = 125.0  # earcut is unreliable on whole-tile polygons with many holes
 GEOMETRIC_ERROR_L1 = 10.0  # meters; doubles each level up, leaves are 0
 
-# Buildings kept at each level: footprint at least `area` m² OR at least `height` m,
-# with footprints simplified by `tol` m. Levels above the table use TOP.
-LEVEL_BUILDINGS = {0: (0, 0, 0.1), 1: (80, 12, 0.5), 2: (400, 20, 1.0), 3: (2500, 40, 2.0), 4: (10000, 70, 4.0)}
-TOP_BUILDINGS = (math.inf, 110, 8.0)
+# How each level draws buildings. Buildings at least `height` m tall or with a footprint
+# of at least `area` m² stay individual (footprints simplified by `tol` m). The rest are
+# merged into block-sized masses: footprints grown by `merge` m so neighbors touch,
+# unioned, shrunk back, and extruded to their members' average height. Masses smaller
+# than `min_mass` m² are dropped. merge=None drops the rest instead. Levels above the
+# table use TOP.
+LEVEL_BUILDINGS = {
+    0: dict(height=0, area=0, tol=0.1),
+    1: dict(height=20, area=2000, tol=0.5, merge=1.5, min_mass=60),
+    2: dict(height=30, area=5000, tol=1.5, merge=3.0, min_mass=600),
+    3: dict(height=45, area=20000, tol=4.0, merge=6.0, min_mass=6000),
+    4: dict(height=70, area=math.inf, tol=6.0),
+}
+TOP_BUILDINGS = dict(height=110, area=math.inf, tol=8.0)
 
 
 def _ground_simplify(level: int) -> float:
@@ -108,11 +118,43 @@ def _feature(b) -> dict:
     return f
 
 
+def _rules(level: int) -> dict:
+    return LEVEL_BUILDINGS.get(level, TOP_BUILDINGS)
+
+
 def _keep(buildings: gpd.GeoDataFrame, level: int) -> gpd.GeoDataFrame:
-    area_min, height_min, _ = LEVEL_BUILDINGS.get(level, TOP_BUILDINGS)
-    if level == 0:
+    """Buildings drawn individually at this level."""
+    r = _rules(level)
+    if level == 0 or not len(buildings):
         return buildings
-    return buildings[(buildings["fp_area"] >= area_min) | (buildings["height"] >= height_min)]
+    return buildings[(buildings["fp_area"] >= r["area"]) | (buildings["height"] >= r["height"])]
+
+
+def _masses(buildings: gpd.GeoDataFrame, level: int) -> list[tuple]:
+    """Merged (polygon, height) masses standing in for the smaller buildings at this level."""
+    r = _rules(level)
+    if level == 0 or not r.get("merge") or not len(buildings):
+        return []
+    small = buildings[(buildings["fp_area"] < r["area"]) & (buildings["height"] < r["height"])]
+    small = small[small["min_height"] < 1.0]  # skip floating parts (canopies, skybridges)
+    if not len(small):
+        return []
+    d = r["merge"]
+    merged = shapely.union_all(shapely.buffer(small.geometry.values, d, quad_segs=1, join_style="mitre"))
+    pieces = [p.buffer(-d, join_style="mitre") for p in _polys(merged)]
+    tree = shapely.STRtree(shapely.points(small["cx"].values, small["cy"].values))
+    heights, areas = small["height"].values, small["fp_area"].values
+    out = []
+    for piece in pieces:
+        for poly in _polys(shapely.make_valid(piece.simplify(r["tol"]))):
+            if poly.area < r["min_mass"]:
+                continue
+            members = tree.query(poly, predicate="contains")
+            if not len(members):
+                continue
+            h = float(np.average(heights[members], weights=areas[members]))
+            out.append((poly, h))
+    return out
 
 
 def _write_tile(out_dir, key: Key, ground: dict, buildings: gpd.GeoDataFrame) -> dict | None:
@@ -133,8 +175,18 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings: gpd.GeoDataFrame) ->
             meshes.append({"name": layer, "material": MAT_INDEX[layer], "arrays": arr})
 
     max_h = 1.0
+    masses = _masses(buildings, key.level) if len(buildings) else []
+    buildings = _keep(buildings, key.level) if len(buildings) else buildings
+    if masses:
+        mb = mesh.MeshBuilder()
+        for poly, h in masses:
+            mesh.add_extrusion(mb, poly, 0.0, h, 0)
+            max_h = max(max_h, h)
+        if (arr := mb.arrays()) is not None:
+            arr.pop("_FEATURE_ID_0")
+            meshes.append({"name": "masses", "material": MAT_INDEX["building"], "arrays": arr})
     if len(buildings):
-        tol = LEVEL_BUILDINGS.get(key.level, TOP_BUILDINGS)[2]
+        tol = _rules(key.level)["tol"]
         mb = mesh.MeshBuilder()
         features = []
         for fid, (_, b) in enumerate(buildings.iterrows()):
@@ -153,7 +205,7 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings: gpd.GeoDataFrame) ->
     nbytes = write_glb(out_dir / uri, meshes, [{"name": n, "color": c} for n, c in MATERIALS.items()])
     return {"uri": uri, "max_h": max_h, "bytes": nbytes,
             "triangles": sum(len(m["arrays"]["indices"]) // 3 for m in meshes),
-            "buildings": len(buildings)}
+            "buildings": len(buildings), "masses": len(masses)}
 
 
 # ---------------------------------------------------------------- block worker
@@ -181,7 +233,7 @@ def _block_job(args):
             if buildings is not None:
                 inside = ((buildings["cx"] >= key.bounds[0]) & (buildings["cx"] < key.bounds[2])
                           & (buildings["cy"] >= key.bounds[1]) & (buildings["cy"] < key.bounds[3]))
-                tb = _keep(buildings[inside], level)
+                tb = buildings[inside]
             meta = _write_tile(out_dir, key, ground, tb if tb is not None else [])
             if meta:
                 metas[key] = meta
@@ -262,7 +314,7 @@ def build(areas: list[int], build_name: str) -> dict:
             ground = {k: v.intersection(ext) for k, v in ground.items()}
             x0, y0, x1, y1 = key.bounds
             inside = (buildings["cx"] >= x0) & (buildings["cx"] < x1) & (buildings["cy"] >= y0) & (buildings["cy"] < y1)
-            meta = _write_tile(out_dir, key, ground, _keep(buildings[inside], level))
+            meta = _write_tile(out_dir, key, ground, buildings[inside])
             if meta:
                 metas[key] = meta
             next_summaries[key] = {k: v for k, v in ground.items() if k in UPPER_LAYERS}
@@ -270,13 +322,17 @@ def build(areas: list[int], build_name: str) -> dict:
         level_keys = sorted(parents)
     root_key = level_keys[0]
 
+    city_root = _node(root_key, metas, extents)
+    city_root.pop("_top")
+    far = _far_lake(out_dir, root_key, shapely.union_all(list(extents.values())))
     tileset = {
         "asset": {"version": "1.1", "generator": "chicago-interactive-map pipeline"},
         "geometricError": _geometric_error(root_key.level) * 2,
-        "root": _node(root_key, metas, extents),
+        # The far lake is always drawn (ADD); the city quadtree refines as usual.
+        "root": {"boundingVolume": city_root["boundingVolume"], "geometricError": _geometric_error(root_key.level) * 2,
+                 "refine": "ADD", "children": [city_root] + ([far] if far else []),
+                 "transform": frame.enu_to_ecef().flatten(order="F").tolist()},
     }
-    tileset["root"].pop("_top")
-    tileset["root"]["transform"] = frame.enu_to_ecef().flatten(order="F").tolist()
     (out_dir / "tileset.json").write_text(json.dumps(tileset))
     (out_dir / "frame.json").write_text(json.dumps(frame.to_dict(), indent=2))
 
@@ -314,6 +370,32 @@ def build(areas: list[int], build_name: str) -> dict:
     print(f"  build '{build_name}': {len(metas)} tiles, {report['bytes'] / 1e6:.0f} MB "
           f"(leaves {leaf['bytes'] / 1e6:.0f} MB), {report['seconds']}s")
     return report
+
+
+def _far_lake(out_dir, root_key: Key, extent) -> dict | None:
+    """Lake Michigan beyond the built tiles, so the lake reaches the horizon."""
+    x0, y0, x1, y1 = root_key.bounds
+    lake = load_features((x0, y0, x1, y1))
+    lake = lake[(lake["name"] == "Lake Michigan") & lake.geometry.geom_type.isin(("Polygon", "MultiPolygon"))]
+    if not len(lake):
+        return None
+    geom = shapely.make_valid(shapely.clip_by_rect(shapely.make_valid(lake.geometry.iloc[0]), x0, y0, x1, y1))
+    geom = shapely.make_valid(geom.simplify(20.0)).difference(extent)
+    mb = mesh.MeshBuilder()
+    for c in _cells(root_key.bounds, 4000.0):
+        for poly in _polys(_clip_cell(geom, c)):
+            mesh.add_flat(mb, poly, 0.0)
+    arr = mb.arrays()
+    if arr is None:
+        return None
+    arr.pop("_FEATURE_ID_0")
+    uri = "tiles/far-lake.glb"
+    (out_dir / "tiles").mkdir(exist_ok=True)
+    write_glb(out_dir / uri, [{"name": "water", "material": MAT_INDEX["water"], "arrays": arr}],
+              [{"name": n, "color": c} for n, c in MATERIALS.items()])
+    hx, hy = (x1 - x0) / 2, (y1 - y0) / 2
+    return {"boundingVolume": {"box": [x0 + hx, y0 + hy, 0, hx, 0, 0, 0, hy, 0, 0, 0, 1]},
+            "geometricError": 0, "content": {"uri": uri}}
 
 
 def _geometric_error(level: int) -> float:

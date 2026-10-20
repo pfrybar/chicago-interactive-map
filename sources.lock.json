@@ -1,4 +1,229 @@
 {
+  "city_footprints:area-1": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,42.02503858614759,-87.6866530946559,41.995959318166946,-87.65255590025104)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-1.geojson",
+    "retrieved_at": "2026-10-20T14:37:03+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 4319534,
+    "sha256": "50de2f808874530966b915f8711f871f4d36ae103de30ea8cba7ad779503dcf1",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-10": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,42.00495561249028,-87.83862676873878,41.96626957802827,-87.7758188527813)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-10.geojson",
+    "retrieved_at": "2026-10-20T14:36:20+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 12430493,
+    "sha256": "683ac2748236daa276c8f6af7e0f30e1cc796015d3c14d8a31020863aaa94dec",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-11": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.999413553060975,-87.79001462634976,41.96559492639224,-87.75063003939874)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-11.geojson",
+    "retrieved_at": "2026-10-20T14:38:09+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 9036291,
+    "sha256": "383a904a4624b73b7c6fb57502aca917f2958ccb5ff766fa228bb10a90227389",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-12": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,42.01744435125704,-87.79219396250069,41.965967466516034,-87.72441981409166)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-12.geojson",
+    "retrieved_at": "2026-10-20T14:37:32+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 15153552,
+    "sha256": "002be9c72a2433caa3ba274d267644a95de345e88fb370c70aeb0b0078054f6a",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-13": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.99936566548963,-87.75026003317014,41.96984473357591,-87.70203771340908)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-13.geojson",
+    "retrieved_at": "2026-10-20T14:37:37+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 7321560,
+    "sha256": "7055ec904f98bc78423e44406af611df99d3adfae5169b76a468d2ea68891a35",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-14": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.978116107366056,-87.7499929359748,41.95892688457267,-87.69274577254876)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-14.geojson",
+    "retrieved_at": "2026-10-20T14:36:45+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 8781471,
+    "sha256": "20344f51a0bfd648294c7e569e2e87cfc2887cbbe166295b3eefe65d59f5481f",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-15": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.97068961062343,-87.7890478336489,41.936448146383235,-87.74010828333876)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-15.geojson",
+    "retrieved_at": "2026-10-20T14:37:11+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 15160150,
+    "sha256": "ec5d3f82b14971d41386ec40b05cab1a2504a4fd1ed2ca4e45a5398a36d7a344",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-16": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.97013393000844,-87.74990823761112,41.93689163653326,-87.69226710457849)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-16.geojson",
+    "retrieved_at": "2026-10-20T14:38:01+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 15566505,
+    "sha256": "f0a73e9795ddd3b16d8fbcb7109e247f4154dd54963b8d6c6a1982817c0fe0db",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-17": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.96221702055827,-87.83869886448804,41.93231254295804,-87.77421462942232)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-17.geojson",
+    "retrieved_at": "2026-10-20T14:36:42+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 12931024,
+    "sha256": "18bd18a49118015327660a49b2c4694c3139080ea306635b681de0a9f6f2ccc6",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-18": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.94023861409459,-87.80874680674233,41.91551009632965,-87.78741511405805)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-18.geojson",
+    "retrieved_at": "2026-10-20T14:37:20+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3725774,
+    "sha256": "447292928feb9d28eac1eeaef3b72759b805e2e04228bdbfe6b544ca6239897d",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-19": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.94089077907245,-87.79276918757412,41.911897604599595,-87.73933544805806)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-19.geojson",
+    "retrieved_at": "2026-10-20T14:36:35+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 12889938,
+    "sha256": "50000ae16f0231d5651ca2b9b121afc6bc67f42e32cb60b5e87f70a3f4b74a0c",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-2": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,42.021531292188165,-87.71267089519469,41.98108046654301,-87.67283452087264)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-2.geojson",
+    "retrieved_at": "2026-10-20T14:37:03+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 9460506,
+    "sha256": "d872695b5f6dfdddb95c85dd3a7c5f133f2f428b2a14c7bf67799ac6fcd0bb92",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-20": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.9409862015253,-87.74417497784049,41.91146553277275,-87.72034754851771)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-20.geojson",
+    "retrieved_at": "2026-10-20T14:37:39+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 5786911,
+    "sha256": "4b86a23ec0c9b1bca207cdfcb143a7de59eba53dcdbdfb3a6f742cc42a70684d",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-21": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.94869596936766,-87.73722203560217,41.929733972217015,-87.68588269112054)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-21.geojson",
+    "retrieved_at": "2026-10-20T14:36:39+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 7766513,
+    "sha256": "1766832064adc7c1a58fe6a6a7ffaf5ab5b117e7f5ce997eac5aa12ccdfb5bea",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-22": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.93810394035656,-87.73346013484016,41.91154916525296,-87.66162056000779)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-22.geojson",
+    "retrieved_at": "2026-10-20T14:37:08+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 16202018,
+    "sha256": "f1b5b2e9a1c486e015120419c8b5d6cac64cc9e82e9407f9e9daa1c6f0d8fc34",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-23": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.91592244395042,-87.74341068668525,41.88582316811692,-87.68957000948774)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-23.geojson",
+    "retrieved_at": "2026-10-20T14:37:45+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 10168120,
+    "sha256": "188a4dcd88f95f083025abca217028f1ef07526bb55f740499798317d576cdba",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-24": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.918182423496205,-87.70900477564093,41.88617310532721,-87.63736098294355)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-24.geojson",
+    "retrieved_at": "2026-10-20T14:36:50+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 13341031,
+    "sha256": "5fe93a855571c7ecb8fe75b4a3defb08b4b43d932b4e403e5fe609c4b789fefb",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-25": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.92536824308778,-87.80822980136492,41.86345915064991,-87.73738985879933)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-25.geojson",
+    "retrieved_at": "2026-10-20T14:37:50+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 18200613,
+    "sha256": "72e42f3f3f78586258f7bfdc25663e5b719cb2540d546c33d7127c87199a9d39",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-26": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.89006705594192,-87.74259567510006,41.86652571095012,-87.71819606123732)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-26.geojson",
+    "retrieved_at": "2026-10-20T14:36:21+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 2833235,
+    "sha256": "9895d514dae8cafd08e494f0467657b99e586680a8936e4b8eceebaf9276880e",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-27": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.89030659813614,-87.72298330194047,41.867133083849424,-87.68667151040978)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-27.geojson",
+    "retrieved_at": "2026-10-20T14:38:12+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3228927,
+    "sha256": "92f0082c9f86b00d04f471128f408848b2201c04e9d8e2d0a4d3772be197568c",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-28": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.89108028424291,-87.69427959523586,41.85566547470533,-87.63250859377231)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-28.geojson",
+    "retrieved_at": "2026-10-20T14:36:31+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 5285825,
+    "sha256": "845f3e76753e221736f0b116bf12f577fe206417399c06ccdcc76c4901d9de9d",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-29": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.87297682639534,-87.74198200626768,41.843592853944656,-87.6859622149693)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-29.geojson",
+    "retrieved_at": "2026-10-20T14:37:13+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 8739797,
+    "sha256": "e03a5579629fc9ecbac60fa6cabab6345cf40f72f13c049b8778086b09be240b",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-3": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.979836935018696,-87.6764075678037,41.95237810445788,-87.62886754619466)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-3.geojson",
+    "retrieved_at": "2026-10-20T14:37:22+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 4755246,
+    "sha256": "2392529dc3886fa1b62c0bfec44e5bb606472edcf8b16bbc518632d4abe82763",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-30": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.8589697648434,-87.74132308974718,41.81670614426039,-87.68539948177965)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-30.geojson",
+    "retrieved_at": "2026-10-20T14:38:00+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 11849596,
+    "sha256": "55b475c14bdee5d1a4c179874ed5e75c905f24ad7f7587a6d7d7426fa1f3ca36",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-31": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.86201802673476,-87.69007300499717,41.83280098201296,-87.63315815937588)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-31.geojson",
+    "retrieved_at": "2026-10-20T14:36:29+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 8301959,
+    "sha256": "20077020eaaaebdd336a47f5d2cbc9ef256f6b44fc269d2876de45ba9a9d1851",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
   "city_footprints:area-32": {
     "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.89263033697911,-87.64028909968283,41.86531465773962,-87.60045571211204)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
     "file": "data/raw/city_footprints/area-32.geojson",
@@ -6,6 +231,465 @@
     "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
     "bytes": 691803,
     "sha256": "91179fb955aeb3dfa60dc1be272bc9cf98edf08ea38090e31f9e66b33ffc66dc",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-33": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.87050686313964,-87.63715815937587,41.842692502653975,-87.60360857382071)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-33.geojson",
+    "retrieved_at": "2026-10-20T14:37:26+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 1415285,
+    "sha256": "2a767b84aa5907e74d20152f20c726459f3016fe0bf5ceba2370af1e478ac2c7",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-34": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.85977914942591,-87.64599883446832,41.82161328704567,-87.62692312909783)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-34.geojson",
+    "retrieved_at": "2026-10-20T14:37:23+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3753989,
+    "sha256": "43b81ed3455635e2fcfb80eb28e6256d3b4b2cfe60bb61cdd66a7164b2ba1e99",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-35": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.84772625798535,-87.63196524445613,41.82168149162978,-87.60070433428014)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-35.geojson",
+    "retrieved_at": "2026-10-20T14:36:32+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 1215181,
+    "sha256": "a6c08fbd9410d21929f8b65cc9e5ada5331e55cc486492c51061704b0da7e424",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-36": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.83336624686849,-87.61462427240323,41.81481377057218,-87.59015283879394)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-36.geojson",
+    "retrieved_at": "2026-10-20T14:37:00+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 853096,
+    "sha256": "7394f395d3fbc7b231b826e39735a7e240bd2cc7de21341461d527c94b6ac19a",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-37": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.82567645970583,-87.63837959632279,41.79247604778118,-87.62655540676514)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-37.geojson",
+    "retrieved_at": "2026-10-20T14:36:37+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 788249,
+    "sha256": "9090fcffc76819162148795b3446e8fd6b76f08c561738331d261405e772da54",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-38": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.82596480017465,-87.6313627926938,41.79989303368919,-87.60440720552852)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-38.geojson",
+    "retrieved_at": "2026-10-20T14:37:15+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 2761268,
+    "sha256": "259e82d3ea28c0e9960b21ed32b01c533445d609327ef22ebf2c5f42b903478c",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-39": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.81894276479231,-87.6087081256125,41.800251162319086,-87.5780146916065)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-39.geojson",
+    "retrieved_at": "2026-10-20T14:37:24+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 1811758,
+    "sha256": "6674b1e5f0aea677b746dfdee7955a824346f255180a69df0342790866e412c6",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-4": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.99276347099695,-87.70890177438967,41.95927342577635,-87.67197665771994)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-4.geojson",
+    "retrieved_at": "2026-10-20T14:36:40+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 8849821,
+    "sha256": "141246775ea8a2ac6192191145b0d67659f4f2899a06caef91d21993c12ffa69",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-40": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.80425116231909,-87.63084901379811,41.7780113243584,-87.60403648433032)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-40.geojson",
+    "retrieved_at": "2026-10-20T14:37:49+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 2141674,
+    "sha256": "2f8f8eaf110266c2403949118bfd68967c8c352500cbc3d15e539f86f11a2c5d",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-41": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.80463397853936,-87.60840720552851,41.78383409707096,-87.5731643691419)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-41.geojson",
+    "retrieved_at": "2026-10-20T14:36:30+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 2235283,
+    "sha256": "50506bc20da8dc39343582127f86e4b93844b96a9526c8a207734111e79e25c9",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-42": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.78839837285432,-87.61775954154977,41.76386856324914,-87.5644481864219)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-42.geojson",
+    "retrieved_at": "2026-10-20T14:36:18+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 5402487,
+    "sha256": "9d7b17e48a0aface61a542bf92b96fa61b1258e2d5cf67af6e69ca7cd9dcdea8",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-43": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.775791081996694,-87.59763037138865,41.74949858871684,-87.53859675912834)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-43.geojson",
+    "retrieved_at": "2026-10-20T14:38:04+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 7150563,
+    "sha256": "62af23047fbedf36bbca60b0a7b21f03c5e77df536e70385c5063cd50483d1c5",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-44": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.75336938446077,-87.64148538880912,41.72054809361332,-87.5933474089973)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-44.geojson",
+    "retrieved_at": "2026-10-20T14:36:38+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 9767450,
+    "sha256": "20427c46b49e9f13763fd585d07287e40e0477d7c0f6b158150b933066b19b59",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-45": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.75888178863032,-87.59988228963594,41.73478237239473,-87.5637006250297)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-45.geojson",
+    "retrieved_at": "2026-10-20T14:37:14+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 6345157,
+    "sha256": "e9851c2108e2e7d49f0e049ebf83611a789e87f203f227ae0af4825efe7597d3",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-46": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.75716375494097,-87.58765529834297,41.72082057741012,-87.52246228735633)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-46.geojson",
+    "retrieved_at": "2026-10-20T14:37:44+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 11803045,
+    "sha256": "a1f7b0fc4ecbb9c152492741231ae97afe924f4af1005da1e07420af1cc1acee",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-47": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.73878237239474,-87.6065181382872,41.72003882650429,-87.58470378967735)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-47.geojson",
+    "retrieved_at": "2026-10-20T14:37:48+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 1976081,
+    "sha256": "fdd72a6c28640ec10f13778e4480e12ee08f9c03ed527a683252b517ee58e69e",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-48": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.73919771875417,-87.5973474089973,41.72058926133721,-87.54367696316127)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-48.geojson",
+    "retrieved_at": "2026-10-20T14:36:22+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 6217992,
+    "sha256": "f860c30b142804a21eec7a7bda0e2904f40b9d3961c3b4b6b686e92acbe153b8",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-49": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.741474264597365,-87.64483396929496,41.68308211967084,-87.60118224048004)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-49.geojson",
+    "retrieved_at": "2026-10-20T14:36:59+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 16676005,
+    "sha256": "bdc30d5bfb78361fa69f18bdc1e2c0ac6df9ba18d00093d545ec166bae889c16",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-5": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.963525434932706,-87.69886355983304,41.930228712055445,-87.67135239722859)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-5.geojson",
+    "retrieved_at": "2026-10-20T14:36:57+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 7393484,
+    "sha256": "0c47838484619301048a792ab27b8dd03ada1339d9bbb0c62f4afb9b7f62c637",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-50": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.724321554678795,-87.61343851380344,41.68344234900486,-87.58262819265236)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-50.geojson",
+    "retrieved_at": "2026-10-20T14:38:06+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3080945,
+    "sha256": "4a89d843051dd0d44f2d370187031e09753b2edcf4e1fb12a2ab58860f524dc7",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-51": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.72588835493387,-87.60394049636506,41.65716259641811,-87.54018035622133)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-51.geojson",
+    "retrieved_at": "2026-10-20T14:36:35+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 8491263,
+    "sha256": "8370961de4fcf213ee45b03ddea9ea62bd61d09426f7d708514fc2e51453813e",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-52": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.73501356794469,-87.54790480603172,41.68075388873591,-87.52213710389523)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-52.geojson",
+    "retrieved_at": "2026-10-20T14:37:09+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 5278131,
+    "sha256": "f09b2781f6f77d84ee7c6ca8028e1fb29463e91263f52b4a3dabc4c211370105",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-53": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.68743388316744,-87.66359876516032,41.655345477199745,-87.61027916268154)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-53.geojson",
+    "retrieved_at": "2026-10-20T14:37:25+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 7092944,
+    "sha256": "fd8e6be5cda8fd3a76435174414884a731868b8cdddd08d7b567ce91130557cd",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-54": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.6882134464492,-87.6223164012126,41.64258401911299,-87.57637707019143)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-54.geojson",
+    "retrieved_at": "2026-10-20T14:37:48+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3121876,
+    "sha256": "4571de45dabacc89b02137c8c17b8ab8519ef0bbf0358e991b3702b924c6eb54",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-55": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.69382631605428,-87.59099968213665,41.64254312150605,-87.52262014976344)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-55.geojson",
+    "retrieved_at": "2026-10-20T14:36:28+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 5537862,
+    "sha256": "15b1b4a686ef776a9b9906001fb3f86d1d0f93302d899e37c46a50b9caf6443f",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-56": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.82411760025094,-87.80362605978661,41.78268843248801,-87.73562325643321)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-56.geojson",
+    "retrieved_at": "2026-10-20T14:36:55+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 9453444,
+    "sha256": "b71aaf890d6ead39a0eef1a118e6cd2d481db55523b6e862035dda38c27da5af",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-57": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.82832111915736,-87.74055658143222,41.793290379422196,-87.71178946168611)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-57.geojson",
+    "retrieved_at": "2026-10-20T14:38:03+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3978774,
+    "sha256": "4a9f5d427efecf654b4494cee6656e8d4ff4300379cc0bb2789765325de7770b",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-58": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.83680098201297,-87.71636934736698,41.801928037996554,-87.68187370345048)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-58.geojson",
+    "retrieved_at": "2026-10-20T14:37:50+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 6417572,
+    "sha256": "d7237aa53ee3a6cd4ff7c1ce2b26e5ea5a33308816c213ea178b37c668b02ee5",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-59": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.84106503144191,-87.68945140832732,41.820955608773,-87.65411232131044)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-59.geojson",
+    "retrieved_at": "2026-10-20T14:37:04+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3609569,
+    "sha256": "9ea754843d78aa476ea303a6f8a453298a5225a48e3e335d7058d2a894f68d54",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-6": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.963634626348956,-87.67597665771993,41.9303427446535,-87.62842364359003)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-6.geojson",
+    "retrieved_at": "2026-10-20T14:37:17+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 9195195,
+    "sha256": "137e5c6e8ddc8974d2b0e32fc2d266c0aff29ff9492794e9ac07c339010d82bb",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-60": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.85150523850744,-87.66696896861457,41.82131366552169,-87.63196392307393)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-60.geojson",
+    "retrieved_at": "2026-10-20T14:37:23+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 5785271,
+    "sha256": "f521dfce256ba5ff8822bc9ea42c04ed8f42104f85d883bd5bf40a9133dcd005",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-61": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.8255857790248,-87.68642535590001,41.79186785400136,-87.63345749912364)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-61.geojson",
+    "retrieved_at": "2026-10-20T14:37:37+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 7385609,
+    "sha256": "9c35193feea3ebebc10a3580f5a70f434d311ea6bbc29717ee2e3734f9706e08",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-62": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.80802275340626,-87.7399051080945,41.783783191923646,-87.71127580716178)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-62.geojson",
+    "retrieved_at": "2026-10-20T14:36:33+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 5762019,
+    "sha256": "cf0fe2605d4da10a73ff607a041b1eb8ed77fc83992e509a246192cd35c2259c",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-63": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.80685747335081,-87.71577631235104,41.78408857600008,-87.6768063652851)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-63.geojson",
+    "retrieved_at": "2026-10-20T14:36:45+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 6566182,
+    "sha256": "4a476daafb667dcbd3e90b83c9b528c460a8e878466efa7ea8a399d17caa08c3",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-64": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.78779226804118,-87.80321615884937,41.76912872025071,-87.73517602843089)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-64.geojson",
+    "retrieved_at": "2026-10-20T14:38:08+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 6419792,
+    "sha256": "a8515c94bc9238a83d57d211baa0e6411481166441545a245b32b36c10700597",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-65": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.788096621693555,-87.74405453854328,41.75104085315375,-87.71043158699463)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-65.geojson",
+    "retrieved_at": "2026-10-20T14:38:04+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 9012185,
+    "sha256": "85b8520d8b30b64388e61d044a4fe3e21cf52fd0cc6409067680bf00c3cb47ec",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-66": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.78856407288033,-87.71494545498456,41.75513402686176,-87.67615131700259)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-66.geojson",
+    "retrieved_at": "2026-10-20T14:37:00+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 9944636,
+    "sha256": "51572372e5e221f46350303c730a94ba057c1cbe237535057647ae62c13c0cce",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-67": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.79617427027236,-87.6816718667824,41.7556307385096,-87.65193085118126)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-67.geojson",
+    "retrieved_at": "2026-10-20T14:37:23+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 7516490,
+    "sha256": "b39131873edc03d1ab160bf9635044f19272107ba71bc6e694f6ef1754fdbf26",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-68": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.79659928453014,-87.65687424668116,41.75407720666332,-87.62624698158253)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-68.geojson",
+    "retrieved_at": "2026-10-20T14:36:23+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 6392227,
+    "sha256": "4a25536848c56e85d01df747d02ba6432e8efefe3ed32ffaef3b383d4d3c2a9e",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-69": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.785209976737235,-87.64190005779257,41.74870465745298,-87.59009856900312)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-69.geojson",
+    "retrieved_at": "2026-10-20T14:37:45+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 10467656,
+    "sha256": "bc9346a50f0706618acefdabf8eaf01878b7953bc085f8c797ae061bf0110360",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-7": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.93501472221123,-87.68484169129204,41.908784509573785,-87.61813214545862)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-7.geojson",
+    "retrieved_at": "2026-10-20T14:36:53+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 9245724,
+    "sha256": "2b7b9e213b0a382096ce00f646201f98da8764f9c843a71e136e3a6ec0b6dcd8",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-70": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.7634696338183,-87.74350162498068,41.73252355676819,-87.67078502252558)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-70.geojson",
+    "retrieved_at": "2026-10-20T14:36:18+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 13489769,
+    "sha256": "49746c2185cd6385a3e89ee8a6016496e7cea757df9070b8a514c7e72f6a592f",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-71": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.76014375298959,-87.68058798382157,41.72663482434936,-87.63173383514987)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-71.geojson",
+    "retrieved_at": "2026-10-20T14:37:16+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 10867886,
+    "sha256": "87935c42cef00384870f5f8d25d7d09716ab49f32b5660bc7c0cd89c1628f7fc",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-72": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.73765900491343,-87.69845961375822,41.69692817430701,-87.65401924563379)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-72.geojson",
+    "retrieved_at": "2026-10-20T14:37:00+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 8627580,
+    "sha256": "186a5bd8f9a3ae4e7a87490da98510c4ca88a95e2b4a60d342e313f143557d4f",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-73": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.73452916253223,-87.67011663188943,41.69744358959819,-87.63113251343576)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-73.geojson",
+    "retrieved_at": "2026-10-20T14:36:16+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 10127995,
+    "sha256": "f7e827ea9678c62dc872af2a1e6ace0035fcef66d7691a8f14d2497d5fea0fb7",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-74": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.715297469504854,-87.74173900882364,41.67844105746214,-87.69375662112563)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-74.geojson",
+    "retrieved_at": "2026-10-20T14:37:17+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 5138465,
+    "sha256": "c1720f7e737d630cdb9bcc50187560f4df2c8e229a7ed0e9e04f85f7ab731d07",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-75": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.70164208617115,-87.69791677453844,41.67396305545473,-87.64015204651399)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-75.geojson",
+    "retrieved_at": "2026-10-20T14:36:20+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 7228649,
+    "sha256": "066fe05220735c0017438707e5fca5562eb5ead8ab76056f7c87b30758d74e51",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-76": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,42.01099059600335,-87.94211408252349,41.93528535345459,-87.83279485589938)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-76.geojson",
+    "retrieved_at": "2026-10-20T14:37:39+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 1985920,
+    "sha256": "530d2f8cde5fedb2f1b6d214b943ea63bc2c184a290375065371b37358519c53",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-77": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,42.00023617337557,-87.67701250028955,41.97410340441675,-87.64529034406016)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-77.geojson",
+    "retrieved_at": "2026-10-20T14:36:51+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 4824194,
+    "sha256": "2bfe481ff0bc235a3d01d0f0a8863087015c89f2b7e0b0ea24f4968b72c1bcb7",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-8": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.9136734579212,-87.6612287748729,41.88423413629368,-87.59652438758668)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-8.geojson",
+    "retrieved_at": "2026-10-20T14:37:20+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3209894,
+    "sha256": "ed4ed57db915482d51bbc4570bd981912ec6eec993d6537d3fc291dda42acb7e",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "city_footprints:area-9": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,42.020964573054286,-87.82341432292037,41.99339193980657,-87.80454721882364)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-9.geojson",
+    "retrieved_at": "2026-10-20T14:36:15+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 3238274,
+    "sha256": "144f7b97464797e4b3960da9f3cc6a3373755361caeb5e4b806ac10137891278",
     "license": "City of Chicago Data Portal Terms of Use"
   },
   "community_areas": {

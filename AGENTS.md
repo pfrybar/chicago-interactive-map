@@ -18,7 +18,8 @@ The unit of work is a **community area** (Chicago's 77 official areas, numbered 
 The host needs only bash and Docker. Never install Python or Node packages on the host; everything runs in containers.
 
 ```bash
-./dev build [AREAS] [BUILD]   # e.g. ./dev build 32 dev, or ./dev build 32,8
+./dev build [AREAS] [BUILD]   # e.g. ./dev build 32 dev, ./dev build 32,8, ./dev build all
+FORCE=1 ./dev build ...       # rebuild tiles even if Snakemake thinks they're current
 ./dev app                     # viewer on http://localhost:5173 (container "web")
 ./dev eval [VIEWS]            # screenshots to eval/out/, exits 1 if a render budget is exceeded
 ./dev smoke                   # interaction test: picking and wall collisions
@@ -26,7 +27,7 @@ The host needs only bash and Docker. Never install Python or Node packages on th
 ./dev shell                   # bash in the pipeline container
 ```
 
-Single pipeline steps: `docker compose run --rm pipeline python -m cim <fetch|osm|buildings|ground|tiles|areas|agent-state> ...`. Run `python -m cim --help` for arguments.
+Single pipeline steps: `docker compose run --rm pipeline python -m cim <fetch|osm|buildings|tiles|areas|locate|agent-state> ...`. Run `python -m cim --help` for arguments. `python -m cim locate <lat> <lon>` converts coordinates to local meters, which is handy for new viewpoints.
 
 Dependency versions are pinned exactly. When adding or upgrading one, pick a release at least two weeks old.
 - Python: add it to `pipeline/requirements.in`, rebuild the image, then regenerate `pipeline/requirements.txt` with `docker compose run --rm pipeline pip freeze` (keep the header comment).
@@ -75,11 +76,16 @@ Citywide systems (the L, tree generation, materials) are built as generators tha
 ## Gotchas
 
 - The viewer's compose service is named `web`, not `app`: Chromium forces HTTPS for any host named `app`. Vite also needs `web` in `server.allowedHosts`.
+- `/builds/*` is served from `data/builds` by the `serveBuilds` plugin in `app/vite.config.ts`, gzipped, in both dev and preview. Don't put builds under `app/public/`: `vite build` would copy over a gigabyte of tiles into `dist/`.
+- The sky draws first (`renderOrder -20`) and the base plane second, both without writing depth. Anything drawn before the sky gets painted over.
 - Ground layers never overlap (each has the layers above it cut out; see `LAYER_ORDER`), so they all sit at height 0. The plain base plane is drawn first without depth writes. Don't reintroduce stacked heights: phones with 16-bit depth buffers z-fight.
-- Ground is triangulated in 125 m cells (`GROUND_CELL`); earcut is unreliable on whole-tile polygons with many holes.
+- Ground is triangulated in 125 m cells (`GROUND_CELL`, scaled up per level); earcut is unreliable on whole-tile polygons with many holes. `clip_by_rect` can return invalid geometry; use `_clip_cell` or `make_valid` after it.
 - Missing OSM tags are `None`, not NaN (`load_features` normalizes this). Check with `is None` or truthiness.
 - three.js r186 removed `PCFSoftShadowMap`; use `PCFShadowMap`. The shadow map is resized to the view each frame (`followShadows`).
-- `tileset.json` uses one flat level of tiles (root geometric error 100000, leaves 0). That's fine for a few areas; building the whole city will need a level-of-detail hierarchy.
+- Tiles form a quadtree (`pipeline/cim/grid.py`). The grid is anchored 32 km southwest of the origin, so the whole city has one root; keys are `Key(level, i, j)` and their `bounds` include that offset. Never compute tile indices with `floor(x / size)`; use `grid.index`.
+- What each level keeps is set by `LEVEL_BUILDINGS` in `tiles.py` and `LEVEL_LAYERS` in `ground.py`. When you change them, check `city-overview` and a few mid-distance viewpoints in `./dev eval`.
+- Tiles are quantized (`KHR_mesh_quantization`). Positions in tile geometry are 16-bit integers scaled by the node transform, so always go through `matrixWorld` (raycasts already do).
+- `./dev eval` skips viewpoints whose `area` isn't in the current build; `area: null` always runs.
 - Snakemake rules list their own modules as inputs (`code(...)` in the Snakefile). When a step starts using a new module, add it there, or edits to it won't trigger a rebuild.
 - Inside containers the host UID has no user name. `USER` is set for Snakemake, and the `dev` script exports `UID`/`GID` for compose.
 

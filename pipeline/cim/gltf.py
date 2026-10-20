@@ -3,6 +3,10 @@
 Vertex data is quantized (KHR_mesh_quantization), which three.js and Cesium
 read natively: positions as 16-bit integers scaled back by the node transform,
 normals as 8-bit, and 16-bit indices whenever a mesh is small enough.
+
+Meshes with "instances" (trees) are drawn once per instance with
+EXT_mesh_gpu_instancing. Their positions stay float: glTF applies the node
+transform after the instance transforms, so it can't also undo quantization.
 """
 import json
 import struct
@@ -37,18 +41,27 @@ def write_glb(path, meshes: list[dict], materials: list[dict]) -> int:
         accessors.append({"bufferView": view, "componentType": ctype, "count": count, "type": kind, **extra})
         return len(accessors) - 1
 
+    instanced = False
     for m in meshes:
         a = m["arrays"]
         pos = a["POSITION"].astype(np.float64)
-        lo, hi = pos.min(axis=0), pos.max(axis=0)
-        center = (lo + hi) / 2
-        scale = max(float((hi - lo).max()) / 2 / Q, 1e-6)
-        qpos = np.round((pos - center) / scale).astype(np.int16)
-        n = len(qpos)
-        padded = np.zeros((n, 4), np.int16)  # 8-byte stride keeps attributes 4-byte aligned
-        padded[:, :3] = qpos
-        attrs = {"POSITION": add_accessor(add_view(padded, ARRAY_BUFFER, 8), SHORT, n, "VEC3",
-                                          min=qpos.min(axis=0).tolist(), max=qpos.max(axis=0).tolist())}
+        n = len(pos)
+        inst = m.get("instances")
+        if inst is not None:
+            instanced = True
+            fpos = pos.astype(np.float32)
+            attrs = {"POSITION": add_accessor(add_view(fpos, ARRAY_BUFFER), FLOAT, n, "VEC3",
+                                              min=fpos.min(axis=0).tolist(), max=fpos.max(axis=0).tolist())}
+            center, scale = None, None
+        else:
+            lo, hi = pos.min(axis=0), pos.max(axis=0)
+            center = (lo + hi) / 2
+            scale = max(float((hi - lo).max()) / 2 / Q, 1e-6)
+            qpos = np.round((pos - center) / scale).astype(np.int16)
+            padded = np.zeros((n, 4), np.int16)  # 8-byte stride keeps attributes 4-byte aligned
+            padded[:, :3] = qpos
+            attrs = {"POSITION": add_accessor(add_view(padded, ARRAY_BUFFER, 8), SHORT, n, "VEC3",
+                                              min=qpos.min(axis=0).tolist(), max=qpos.max(axis=0).tolist())}
         nrm = np.zeros((n, 4), np.int8)
         nrm[:, :3] = np.round(np.clip(a["NORMAL"], -1, 1) * 127).astype(np.int8)
         attrs["NORMAL"] = add_accessor(add_view(nrm, ARRAY_BUFFER, 4), BYTE, n, "VEC3", normalized=True)
@@ -61,16 +74,23 @@ def write_glb(path, meshes: list[dict], materials: list[dict]) -> int:
                 "indices": add_accessor(add_view(idx, ELEMENT_ARRAY_BUFFER), USHORT if idx.dtype == np.uint16 else UINT,
                                         len(idx), "SCALAR")}
         gl_meshes.append({"name": m["name"], "primitives": [prim]})
-        node = {"name": m["name"], "mesh": len(gl_meshes) - 1,
-                "translation": center.tolist(), "scale": [scale, scale, scale]}
+        node = {"name": m["name"], "mesh": len(gl_meshes) - 1}
+        if inst is None:
+            node |= {"translation": center.tolist(), "scale": [scale, scale, scale]}
+        else:
+            k = len(inst["TRANSLATION"])
+            node["extensions"] = {"EXT_mesh_gpu_instancing": {"attributes": {
+                name: add_accessor(add_view(np.ascontiguousarray(inst[name], np.float32), ARRAY_BUFFER), FLOAT, k,
+                                   "VEC4" if name == "ROTATION" else "VEC3")
+                for name in ("TRANSLATION", "ROTATION", "SCALE")}}}
         if m.get("extras"):
             node["extras"] = m["extras"]
         nodes.append(node)
 
     doc = {
         "asset": {"version": "2.0", "generator": "chicago-interactive-map pipeline"},
-        "extensionsUsed": ["KHR_mesh_quantization"],
-        "extensionsRequired": ["KHR_mesh_quantization"],
+        "extensionsUsed": ["KHR_mesh_quantization"] + (["EXT_mesh_gpu_instancing"] if instanced else []),
+        "extensionsRequired": ["KHR_mesh_quantization"] + (["EXT_mesh_gpu_instancing"] if instanced else []),
         "scene": 0,
         "scenes": [{"nodes": list(range(len(nodes)))}],
         "nodes": nodes,

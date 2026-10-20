@@ -16,6 +16,7 @@ if (evalMode) document.body.classList.add('eval')
 
 const HEIGHT_SOURCES: Record<string, string> = {
   lidar: 'measured by USGS lidar, 2017',
+  override: 'corrected after review',
   'osm:height': 'OpenStreetMap height',
   'osm:levels': 'from OpenStreetMap floor count',
   'city:stories': 'from City of Chicago floor count',
@@ -146,7 +147,7 @@ async function start() {
     const dt = Math.min(clock.getDelta(), 0.1)
     controls.update(dt)
     camera.updateMatrixWorld()
-    city.update()
+    city.update(camera)
     controls.focus(focus)
     stage.followCamera()
     stage.followShadows(focus, Math.max(camera.position.distanceTo(focus) * 1.6, 300))

@@ -1,6 +1,6 @@
 import {
-  BufferAttribute, BufferGeometry, Color, Material, Matrix4, Mesh, MeshLambertMaterial, MeshStandardMaterial,
-  Object3D, PerspectiveCamera, WebGLRenderer,
+  BufferAttribute, BufferGeometry, Color, InstancedMesh, Material, Matrix4, Mesh, MeshLambertMaterial, MeshStandardMaterial,
+  Object3D, PerspectiveCamera, Vector3, WebGLRenderer,
 } from 'three'
 import { TilesRenderer } from '3d-tiles-renderer'
 import { LAND } from './scene'
@@ -45,6 +45,9 @@ export interface BuildInfo {
   report: { areas: { number: number; name: string }[]; buildings: number }
 }
 
+/** Meters from the camera within which street-level tiles show every tree. */
+const TREE_NEAR = 500
+
 // One shared material per ground layer / buildings, replacing the defaults in the tiles.
 // Colors are linear (three.js working space), so they look lighter on screen than the numbers suggest.
 const MATERIALS: Record<string, Material> = {
@@ -56,6 +59,14 @@ const MATERIALS: Record<string, Material> = {
   road: new MeshLambertMaterial({ color: new Color(0.19, 0.185, 0.18) }),
   path: new MeshLambertMaterial({ color: new Color(0.55, 0.54, 0.51) }),
   wall: new MeshLambertMaterial({ color: new Color(0.42, 0.40, 0.37) }),
+  rail: new MeshLambertMaterial({ color: new Color(0.26, 0.23, 0.20) }),         // railbed gravel
+  steel: new MeshStandardMaterial({ color: new Color(0.06, 0.08, 0.07), roughness: 0.7, metalness: 0.3 }), // CTA structure
+  rails: new MeshStandardMaterial({ color: new Color(0.35, 0.33, 0.31), roughness: 0.35, metalness: 0.8 }),
+  ballast: new MeshLambertMaterial({ color: new Color(0.20, 0.18, 0.16) }),
+  platform: new MeshLambertMaterial({ color: new Color(0.45, 0.44, 0.42) }),
+  canopy: new MeshStandardMaterial({ color: new Color(0.08, 0.10, 0.09), roughness: 0.6, metalness: 0.2 }),
+  foliage: new MeshLambertMaterial({ color: new Color(0.11, 0.20, 0.07) }),
+  bark: new MeshLambertMaterial({ color: new Color(0.12, 0.08, 0.05) }),
 }
 
 export async function loadBuild(): Promise<BuildInfo> {
@@ -74,6 +85,9 @@ export class City {
   readonly buildingMeshes = new Set<Mesh>()
   /** Ground meshes currently loaded; walk mode stands on them. */
   readonly groundMeshes = new Set<Mesh>()
+  /** Street-level tiles' tree sets: full near the camera, thinned farther away. */
+  private treeSets = new Map<Object3D, { full: Mesh[]; far: Mesh[]; center: Vector3 }>()
+  private tmp = new Vector3()
   ready = false
 
   constructor(build: BuildInfo, camera: PerspectiveCamera, renderer: WebGLRenderer, frameMatrix: Matrix4) {
@@ -97,9 +111,20 @@ export class City {
         const mesh = o as Mesh
         if (!mesh.isMesh) return
         const old = mesh.material as Material
-        const key = old.name === 'building' || mesh.name === 'buildings' ? 'building' : old.name
+        let key = old.name === 'building' || mesh.name === 'buildings' ? 'building' : old.name
+        if (mesh.name === 'foliage_far') key = 'foliage'
+        if (['foliage', 'bark', 'foliage_far'].includes(mesh.name)) this.addTreeMesh(scene, mesh)
         mesh.material = MATERIALS[key] ?? MATERIALS.land
         old.dispose()
+        if (key === 'foliage' || key === 'bark') {
+          mesh.receiveShadow = true  // trees don't cast: there are too many of them
+          return
+        }
+        if (['steel', 'rails', 'platform', 'canopy'].includes(key)) {
+          mesh.castShadow = true
+          mesh.receiveShadow = true
+          return
+        }
         if (key === 'building') {
           mesh.castShadow = true
           mesh.receiveShadow = true
@@ -107,7 +132,7 @@ export class City {
           this.buildingMeshes.add(mesh)
         } else {
           mesh.receiveShadow = true
-          if (key !== 'water' && key !== 'wall') {
+          if (!['water', 'wall', 'steel', 'rails', 'ballast', 'platform', 'canopy', 'foliage', 'bark'].includes(key)) {
             mesh.geometry.computeBoundsTree()
             this.groundMeshes.add(mesh)
           }
@@ -115,6 +140,7 @@ export class City {
       })
     })
     tiles.addEventListener('dispose-model', ({ scene }: { scene: Object3D }) => {
+      this.treeSets.delete(scene)
       scene.traverse((o) => {
         const mesh = o as Mesh
         if (!mesh.isMesh) return
@@ -158,8 +184,34 @@ export class City {
     return g
   }
 
-  update(): void {
+  private addTreeMesh(tile: Object3D, mesh: Mesh): void {
+    let set = this.treeSets.get(tile)
+    if (!set) {
+      set = { full: [], far: [], center: new Vector3() }
+      this.treeSets.set(tile, set)
+    }
+    if (mesh.name === 'foliage_far') {
+      set.far.push(mesh)
+    } else {
+      set.full.push(mesh)
+      const inst = mesh as InstancedMesh
+      if (inst.isInstancedMesh && set.full.length === 1) {
+        inst.computeBoundingSphere()
+        set.center.copy(inst.boundingSphere!.center)  // in the mesh's own space
+      }
+    }
+    mesh.visible = mesh.name === 'foliage_far'
+  }
+
+  update(camera: PerspectiveCamera): void {
     this.tiles.update()
+    // Every tree only for street-level tiles near the camera; the thinned set elsewhere.
+    for (const set of this.treeSets.values()) {
+      if (!set.full.length) continue
+      const near = camera.position.distanceTo(this.tmp.copy(set.center).applyMatrix4(set.full[0].matrixWorld)) < TREE_NEAR
+      for (const m of set.full) m.visible = near
+      for (const m of set.far) m.visible = !near
+    }
   }
 
   /** Only meshes that are actually shown: hidden coarser or finer tiles stay loaded but don't count. */

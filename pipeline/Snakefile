@@ -1,5 +1,7 @@
-# Build workflow. Run from the repo root (the Makefile does this for you):
+# Build workflow. Run from the repo root (`./dev build` does this for you):
 #   snakemake -s pipeline/Snakefile -d . --cores 4 --config areas=32 build=dev
+import glob
+
 _areas = str(config.get("areas", "32"))
 AREAS = list(range(1, 78)) if _areas == "all" else [int(a) for a in _areas.split(",")]
 BUILD = config.get("build", "dev")
@@ -58,13 +60,30 @@ rule roofs:
     threads: workflow.cores
     shell: PY + " roofs --areas {params.areas}"
 
+rule rail:
+    # Per-block deck profiles are cached in data/work/rail/; existing blocks are skipped.
+    input: rules.lidar.output, code("rail", "lidar")
+    output: touch(f"data/work/rail/{BUILD}.done")
+    params: areas=",".join(map(str, AREAS))
+    shell: PY + " rail --areas {params.areas}"
+
+rule trees:
+    # Per-block tree lists are cached in data/work/trees/; existing blocks are skipped.
+    input: rules.lidar.output, code("trees", "lidar")
+    output: touch(f"data/work/trees/{BUILD}.done")
+    params: areas=",".join(map(str, AREAS))
+    shell: PY + " trees --areas {params.areas}"
+
 rule tiles:
     input:
+        glob.glob("data/overrides/*.yaml"),
         rules.lidar.output,
         rules.roofs.output,
+        rules.rail.output,
+        rules.trees.output,
         expand("data/work/area-{area}/buildings.parquet", area=AREAS),
         rules.osm_features.output,
-        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap"),
+        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap", "rail", "trees"),
     output: f"data/builds/{BUILD}/tileset.json"
     params: areas=",".join(map(str, AREAS))
     threads: workflow.cores

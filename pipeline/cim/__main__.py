@@ -27,6 +27,14 @@ def main() -> None:
     ro.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
     ro.add_argument("--force", action="store_true", help="redo blocks that already have outputs")
 
+    ra = sub.add_parser("rail", help="deck heights of elevated track from lidar, per 2 km block")
+    ra.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
+    ra.add_argument("--force", action="store_true", help="redo blocks that already have outputs")
+
+    tr = sub.add_parser("trees", help="tree positions and sizes from lidar, per 2 km block")
+    tr.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
+    tr.add_argument("--force", action="store_true", help="redo blocks that already have outputs")
+
     sub.add_parser("areas", help="list community areas")
     loc = sub.add_parser("locate", help="convert latitude/longitude to local map meters (for viewpoints)")
     loc.add_argument("lat", type=float)
@@ -66,6 +74,18 @@ def main() -> None:
         areas = list(range(1, 78)) if a.areas == "all" else [int(x) for x in a.areas.split(",")]
         blocks = {leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}
         roofs.run(blocks, apply_lidar(load_buildings(areas), blocks), a.force)
+    elif a.cmd == "rail":
+        from . import rail
+        from .grid import BLOCK_LEVEL
+        from .tiles import build_leaves
+        areas = list(range(1, 78)) if a.areas == "all" else [int(x) for x in a.areas.split(",")]
+        rail.run({leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}, a.force)
+    elif a.cmd == "trees":
+        from . import trees
+        from .grid import BLOCK_LEVEL
+        from .tiles import build_leaves
+        areas = list(range(1, 78)) if a.areas == "all" else [int(x) for x in a.areas.split(",")]
+        trees.run({leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}, a.force)
     elif a.cmd == "locate":
         from pyproj import Transformer
         from .frame import local_frame

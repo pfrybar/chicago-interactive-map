@@ -50,3 +50,13 @@ def test_refine_splits_long_edges_without_cracks():
                                   t.reshape(-1, 3)[:, [2, 0]]]), axis=1)
     _, counts = np.unique(key, axis=0, return_counts=True)
     assert set(counts) <= {1, 2}
+
+
+def test_rail_thinning_keeps_curves_and_drops_straight_runs():
+    from cim.rail import _thin
+    s = np.arange(0, 200, 4.0)
+    straight = _thin(s, np.zeros_like(s), np.zeros_like(s))
+    assert list(straight) == [0, 15, 30, 45, len(s) - 1] or len(straight) <= 6   # ends (and 60 m caps) only
+    a = s / 200 * np.pi
+    curve = _thin(100 * np.cos(a), 100 * np.sin(a), np.zeros_like(s))
+    assert len(curve) > 10                                                     # a curve keeps its shape

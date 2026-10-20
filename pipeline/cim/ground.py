@@ -10,7 +10,7 @@ from shapely.ops import polygonize, unary_union
 import numpy as np
 
 # Top of the stack first. "land" is whatever is left.
-LAYER_ORDER = ["path", "road", "water", "sand", "green", "land"]
+LAYER_ORDER = ["path", "road", "rail", "water", "sand", "green", "land"]
 
 ROAD_WIDTH = {
     "motorway": 14, "trunk": 13, "primary": 13, "secondary": 11, "tertiary": 10,
@@ -28,8 +28,10 @@ GREEN = {
 }
 
 # What each tile level draws. Level 0 is full detail; higher levels are seen from farther away.
-LEVEL_LAYERS = {0: ["path", "road", "water", "sand", "green"], 1: ["road_major", "water", "sand", "green"],
+LEVEL_LAYERS = {0: ["path", "road", "rail", "water", "sand", "green"],
+                1: ["road_major", "rail", "water", "sand", "green"],
                 2: ["road_major", "water", "green"]}
+RAILBED_WIDTH = 4.0  # per track, for railways at ground level
 UPPER_LAYERS = ["water", "green"]
 
 
@@ -74,6 +76,16 @@ def _union_polys(gdf, extent) -> shapely.Geometry:
         return Polygon()
     clipped = [shapely.make_valid(shapely.clip_by_rect(shapely.make_valid(g), *extent.bounds)) for g in polys]
     return unary_union(clipped)
+
+
+def _railbeds(feats) -> shapely.Geometry:
+    """Gravel strips under railways at ground level (bridges and tunnels excluded)."""
+    from .rail import railways
+    r = railways(feats)
+    r = r[~r["elevated"]]
+    if not len(r):
+        return Polygon()
+    return unary_union(list(r.geometry.buffer(RAILBED_WIDTH / 2, cap_style="flat", quad_segs=2)))
 
 
 def lake_from_coastline(coast_lines, extent: Polygon) -> shapely.Geometry:
@@ -125,6 +137,7 @@ def raw_layers(feats, extent: Polygon) -> dict[str, shapely.Geometry]:
         ] + [feats[on_bridge & feats["railway"].notna()].geometry.buffer(5, cap_style="flat").union_all()]
           if on_bridge.any() else []),
         "road": _buffer_lines(roads, ROAD_WIDTH),
+        "rail": _railbeds(feats),
         "road_major": _buffer_lines(roads[roads["highway"].isin(MAJOR_ROADS)], ROAD_WIDTH),
         "path": unary_union([
             _buffer_lines(feats[hw.isin(PATH_WIDTH.keys()) & lines], PATH_WIDTH),

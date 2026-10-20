@@ -49,9 +49,17 @@ MATERIALS = {
     "road": (0.55, 0.55, 0.56, 1.0),
     "path": (0.90, 0.89, 0.86, 1.0),
     "wall": (0.62, 0.60, 0.56, 1.0),
+    "rail": (0.52, 0.48, 0.44, 1.0),
+    "steel": (0.25, 0.27, 0.26, 1.0),
+    "rails": (0.55, 0.53, 0.50, 1.0),
+    "ballast": (0.45, 0.42, 0.39, 1.0),
+    "platform": (0.70, 0.69, 0.66, 1.0),
+    "canopy": (0.35, 0.37, 0.36, 1.0),
+    "foliage": (0.30, 0.45, 0.22, 1.0),
+    "bark": (0.30, 0.24, 0.19, 1.0),
 }
 MAT_INDEX = {name: i for i, name in enumerate(MATERIALS)}
-GROUND_ORDER = ["path", "road", "water", "sand", "green", "land"]
+GROUND_ORDER = ["path", "road", "rail", "water", "sand", "green", "land"]
 GROUND_CELL = 125.0  # earcut is unreliable on whole-tile polygons with many holes
 GEOMETRIC_ERROR_L1 = 10.0  # meters; doubles each level up, leaves are 0
 
@@ -99,6 +107,42 @@ def _cells(bounds, size: float):
     step = (x1 - x0) / n
     return [(x0 + i * step, y0 + j * step, x0 + (i + 1) * step, y0 + (j + 1) * step)
             for i in range(n) for j in range(n)]
+
+
+def _tree_meshes(key: Key, trees: pd.DataFrame) -> list[dict]:
+    """Instanced trees for one tile (scaled per tree, turned by a stable pseudo-random angle)."""
+    from .trees import LEVEL_TREES, tree_model
+    min_h = LEVEL_TREES.get(key.level)
+    if min_h is None:
+        return []
+    x0, y0, x1, y1 = key.bounds
+    t = trees[(trees["x"] >= x0) & (trees["x"] < x1) & (trees["y"] >= y0) & (trees["y"] < y1)
+              & (trees["height"] >= min_h)]
+    if not len(t):
+        return []
+    x, y, b, h, r = (t[c].values for c in ("x", "y", "base", "height", "radius"))
+    # glTF is y-up: (east, up, -north). Rotation is about the vertical axis.
+    angle = (np.sin(x * 12.9898 + y * 78.233) * 43758.5453) % (2 * np.pi)
+    inst = {
+        "TRANSLATION": np.c_[x, b, -y],
+        "ROTATION": np.c_[np.zeros_like(angle), np.sin(angle / 2), np.zeros_like(angle), np.cos(angle / 2)],
+        "SCALE": np.c_[r, h, r],
+    }
+    out = []
+    for name, mb in zip(("foliage", "bark"), tree_model(0 if key.level == 0 else 1)):
+        if (arr := mb.arrays()) is not None:
+            arr.pop("_FEATURE_ID_0")
+            out.append({"name": name, "material": MAT_INDEX[name], "arrays": arr, "instances": inst})
+    if key.level == 0:
+        # A thinner set for when this tile is farther from the camera (the viewer switches):
+        # every tree over 9 m plus about a third of the rest, crowns only.
+        far = (h >= 9.0) | ((np.sin(x * 4.1 + y * 7.3) * 1e4) % 1 < 0.33)
+        if far.any():
+            arr = tree_model(1)[0].arrays()
+            arr.pop("_FEATURE_ID_0")
+            out.append({"name": "foliage_far", "material": MAT_INDEX["foliage"], "arrays": arr,
+                        "instances": {k: v[far] for k, v in inst.items()}})
+    return out
 
 
 def _clip_cell(geom, bounds):
@@ -222,7 +266,8 @@ def _skip_walls(bounds, bridges, eps: float = 0.02):
     return skip
 
 
-def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | None = None) -> dict | None:
+def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | None = None,
+                rail=None, trees=None) -> dict | None:
     """Write one tile's GLB. Returns its metadata, or None if it would be empty."""
     from shapely.geometry.polygon import orient
     meshes = []
@@ -260,6 +305,19 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
                 meshes.append({"name": "wall", "material": MAT_INDEX["wall"], "arrays": arr})
 
     top, bottom = 1.0, water_z - 1.0
+    if rail is not None and key.level <= 2:
+        from . import rail as railmod
+        tracks, platforms, profiles = rail
+        parts = railmod.track_meshes(tracks, profiles, dem, key.bounds, key.level)
+        if key.level == 0:
+            parts |= railmod.platform_meshes(platforms, tracks, profiles, dem, key.bounds)
+        for name, mb in parts.items():
+            if (arr := mb.arrays()) is not None:
+                arr.pop("_FEATURE_ID_0")
+                meshes.append({"name": name, "material": MAT_INDEX[name], "arrays": arr})
+                top = max(top, float(arr["POSITION"][:, 1].max()))
+    if trees is not None and len(trees):
+        meshes += _tree_meshes(key, trees)
     masses = _masses(buildings, key.level) if len(buildings) else []
     buildings = _keep(buildings, key.level) if len(buildings) else buildings
     if masses:
@@ -277,7 +335,8 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
         lod2 = 0
         for fid, (_, b) in enumerate(buildings.iterrows()):
             base = float(b["base"])
-            model = roofs.get(b["id"]) if roofs and b["height_source"] == "lidar" else None
+            model = (roofs.get(b["id"]) if roofs and b["height_source"] == "lidar" and not b.get("flat_roof")
+                     else None)
             if model is not None:
                 # LoD 2.2 model from roofer: real roof shapes.
                 pos, nrm, idx = model
@@ -316,9 +375,14 @@ def _block_job(args):
     raw = raw_layers(feats, margin)
     buildings = gpd.read_parquet(bpath) if bpath else None
     from .lidar import load_dem
+    from .rail import load_profiles, platforms_from, railways
     from .roofs import load as load_roofs
     dem = load_dem(block)
     roofs = load_roofs(block)
+    neighbors = [Key(block.level, block.i + a, block.j + b) for a in (-1, 0, 1) for b in (-1, 0, 1)]
+    rail = (railways(feats), platforms_from(feats), load_profiles(neighbors))
+    from .trees import load as load_trees
+    trees = load_trees(block)
 
     metas, extents, summary = {}, {}, {}
     for level in range(0, BLOCK_LEVEL + 1):
@@ -333,7 +397,8 @@ def _block_job(args):
                 inside = ((buildings["cx"] >= key.bounds[0]) & (buildings["cx"] < key.bounds[2])
                           & (buildings["cy"] >= key.bounds[1]) & (buildings["cy"] < key.bounds[3]))
                 tb = buildings[inside]
-            meta = _write_tile(out_dir, key, ground, tb if tb is not None else [], dem, roofs if level == 0 else None)
+            meta = _write_tile(out_dir, key, ground, tb if tb is not None else [], dem,
+                               roofs if level == 0 else None, rail, trees)
             if meta:
                 metas[key] = meta
             if level == BLOCK_LEVEL:
@@ -369,6 +434,17 @@ def load_buildings(areas: list[int]) -> gpd.GeoDataFrame:
     buildings["fp_area"] = buildings.geometry.area
     buildings["base"] = 0.0
     return buildings
+
+
+def _apply_overrides(buildings: gpd.GeoDataFrame, areas: list[int]) -> gpd.GeoDataFrame:
+    from .lidar import load_dem
+    from . import overrides
+
+    def dem_at(x, y):
+        dem = load_dem(Key(BLOCK_LEVEL, *grid_index(x, y, BLOCK_LEVEL)))
+        return float(dem.sample(x, y)) if dem is not None else 0.0
+    buildings["flat_roof"] = False
+    return overrides.apply(buildings, areas, dem_at)
 
 
 def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
@@ -426,6 +502,7 @@ def build(areas: list[int], build_name: str) -> dict:
     leaves = build_leaves(areas)
     buildings = load_buildings(areas)
     buildings = apply_lidar(buildings, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves})
+    buildings = _apply_overrides(buildings, areas)
 
     # Split buildings by block so each worker reads only its own.
     tmp = WORK / "tiles-tmp" / build_name
@@ -571,7 +648,7 @@ def _far_lake(out_dir, root_key: Key, extent) -> dict | None:
 
 
 _TILE_COLUMNS = ["id", "osm_id", "kind", "name", "height", "min_height", "height_source", "year_built",
-                 "geometry", "cx", "cy", "fp_area", "base", "height_prev", "source_prev"]
+                 "geometry", "cx", "cy", "fp_area", "base", "height_prev", "source_prev", "flat_roof"]
 
 
 def _upper_job(args):

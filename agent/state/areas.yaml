@@ -1,0 +1,698 @@
+# Progress of the neighborhood walk, one entry per community area.
+# Agents update this file in the same PR as their changes. See AGENTS.md.
+#   passes.<pass>.status: todo | in_progress | done | needs_review
+#   stale: true when source data changed in the area since the last pass
+1:
+  name: Rogers Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+2:
+  name: West Ridge
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+3:
+  name: Uptown
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+4:
+  name: Lincoln Square
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+5:
+  name: North Center
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+6:
+  name: Lake View
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+7:
+  name: Lincoln Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+8:
+  name: Near North Side
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+9:
+  name: Edison Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+10:
+  name: Norwood Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+11:
+  name: Jefferson Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+12:
+  name: Forest Glen
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+13:
+  name: North Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+14:
+  name: Albany Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+15:
+  name: Portage Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+16:
+  name: Irving Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+17:
+  name: Dunning
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+18:
+  name: Montclare
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+19:
+  name: Belmont Cragin
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+20:
+  name: Hermosa
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+21:
+  name: Avondale
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+22:
+  name: Logan Square
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+23:
+  name: Humboldt Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+24:
+  name: West Town
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+25:
+  name: Austin
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+26:
+  name: West Garfield Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+27:
+  name: East Garfield Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+28:
+  name: Near West Side
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+29:
+  name: North Lawndale
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+30:
+  name: South Lawndale
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+31:
+  name: Lower West Side
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+32:
+  name: Loop
+  passes:
+    massing:
+      status: done
+      at: '2026-10-20'
+    verify:
+      status: todo
+  stale: false
+  notes: []
+33:
+  name: Near South Side
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+34:
+  name: Armour Square
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+35:
+  name: Douglas
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+36:
+  name: Oakland
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+37:
+  name: Fuller Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+38:
+  name: Grand Boulevard
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+39:
+  name: Kenwood
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+40:
+  name: Washington Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+41:
+  name: Hyde Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+42:
+  name: Woodlawn
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+43:
+  name: South Shore
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+44:
+  name: Chatham
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+45:
+  name: Avalon Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+46:
+  name: South Chicago
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+47:
+  name: Burnside
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+48:
+  name: Calumet Heights
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+49:
+  name: Roseland
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+50:
+  name: Pullman
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+51:
+  name: South Deering
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+52:
+  name: East Side
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+53:
+  name: West Pullman
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+54:
+  name: Riverdale
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+55:
+  name: Hegewisch
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+56:
+  name: Garfield Ridge
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+57:
+  name: Archer Heights
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+58:
+  name: Brighton Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+59:
+  name: McKinley Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+60:
+  name: Bridgeport
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+61:
+  name: New City
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+62:
+  name: West Elsdon
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+63:
+  name: Gage Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+64:
+  name: Clearing
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+65:
+  name: West Lawn
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+66:
+  name: Chicago Lawn
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+67:
+  name: West Englewood
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+68:
+  name: Englewood
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+69:
+  name: Greater Grand Crossing
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+70:
+  name: Ashburn
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+71:
+  name: Auburn Gresham
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+72:
+  name: Beverly
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+73:
+  name: Washington Heights
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+74:
+  name: Mount Greenwood
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+75:
+  name: Morgan Park
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+76:
+  name: Ohare
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []
+77:
+  name: Edgewater
+  passes:
+    massing:
+      status: todo
+    verify:
+      status: todo
+  stale: false
+  notes: []

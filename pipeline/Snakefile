@@ -1,0 +1,47 @@
+# Build workflow. Run from the repo root (the Makefile does this for you):
+#   snakemake -s pipeline/Snakefile -d . --cores 4 --config areas=32 build=dev
+AREAS = [int(a) for a in str(config.get("areas", "32")).split(",")]
+BUILD = config.get("build", "dev")
+PY = "python -m cim"
+
+rule all:
+    input: f"data/builds/{BUILD}/tileset.json"
+
+rule fetch_osm:
+    output: "data/raw/osm_illinois/illinois-latest.osm.pbf"
+    shell: f"{PY} fetch osm_illinois"
+
+rule fetch_areas:
+    output: "data/raw/community_areas/community_areas.geojson"
+    shell: f"{PY} fetch community_areas"
+
+rule fetch_city_footprints:
+    input: rules.fetch_areas.output
+    output: "data/raw/city_footprints/area-{area}.geojson"
+    shell: PY + " fetch city_footprints --area {wildcards.area}"
+
+rule osm_features:
+    input: rules.fetch_osm.output
+    output: "data/work/osm/features.parquet"
+    shell: f"{PY} osm"
+
+rule buildings:
+    input:
+        rules.osm_features.output,
+        rules.fetch_areas.output,
+        "data/raw/city_footprints/area-{area}.geojson",
+    output: "data/work/area-{area}/buildings.parquet"
+    shell: PY + " buildings --area {wildcards.area}"
+
+rule ground:
+    input: rules.osm_features.output, rules.fetch_areas.output
+    output: "data/work/area-{area}/ground.parquet"
+    shell: PY + " ground --area {wildcards.area}"
+
+rule tiles:
+    input:
+        expand("data/work/area-{area}/buildings.parquet", area=AREAS),
+        expand("data/work/area-{area}/ground.parquet", area=AREAS),
+    output: f"data/builds/{BUILD}/tileset.json"
+    params: areas=",".join(map(str, AREAS))
+    shell: f"{PY} tiles --areas {{params.areas}} --build {BUILD} && {PY} agent-state"

@@ -1,0 +1,31 @@
+# Every external data source the pipeline uses.
+# `python -m cim fetch <name>` downloads a source into data/raw/<name>/ and records
+# what it got (URL, time, size, sha256) in sources.lock.json, which is committed.
+# Add a source here before using it, with its license. See AGENTS.md "Data sources".
+
+osm_illinois:
+  description: OpenStreetMap extract for Illinois (buildings, roads, water, parks)
+  url: https://download.geofabrik.de/north-america/us/illinois-latest.osm.pbf
+  file: illinois-latest.osm.pbf
+  license: ODbL-1.0
+  attribution: "© OpenStreetMap contributors"
+  homepage: https://www.openstreetmap.org/copyright
+
+community_areas:
+  description: City of Chicago community area boundaries (the 77 official areas)
+  url: https://data.cityofchicago.org/resource/igwz-8jzy.geojson?$limit=100
+  file: community_areas.geojson
+  license: City of Chicago Data Portal Terms of Use
+  attribution: City of Chicago
+  homepage: https://data.cityofchicago.org/d/igwz-8jzy
+
+city_footprints:
+  description: >
+    City of Chicago building footprints (stories, year built, name). Fetched per
+    community area with a bounding-box query; the {bbox} placeholder is filled in.
+  url: "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,{bbox}) AND bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000"
+  file: "area-{area}.geojson"
+  per_area: true
+  license: City of Chicago Data Portal Terms of Use
+  attribution: City of Chicago
+  homepage: https://data.cityofchicago.org/d/syp8-uezg

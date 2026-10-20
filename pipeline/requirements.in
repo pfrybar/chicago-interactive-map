@@ -1,0 +1,11 @@
+geopandas
+pyogrio
+shapely
+pyproj
+pyarrow
+numpy
+mapbox-earcut
+requests
+pyyaml
+snakemake
+pytest

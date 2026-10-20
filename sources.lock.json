@@ -1,0 +1,29 @@
+{
+  "city_footprints:area-32": {
+    "url": "https://data.cityofchicago.org/resource/syp8-uezg.geojson?$where=within_box(the_geom,41.89263033697911,-87.64028909968283,41.86531465773962,-87.60045571211204)%20AND%20bldg_statu='ACTIVE'&$select=bldg_id,bldg_name1,stories,year_built,the_geom&$limit=200000",
+    "file": "data/raw/city_footprints/area-32.geojson",
+    "retrieved_at": "2026-10-20T12:59:49+00:00",
+    "last_modified": "Wed, 02 Dec 2015 18:06:17 GMT",
+    "bytes": 691803,
+    "sha256": "91179fb955aeb3dfa60dc1be272bc9cf98edf08ea38090e31f9e66b33ffc66dc",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "community_areas": {
+    "url": "https://data.cityofchicago.org/resource/igwz-8jzy.geojson?$limit=100",
+    "file": "data/raw/community_areas/community_areas.geojson",
+    "retrieved_at": "2026-10-20T12:59:45+00:00",
+    "last_modified": "Tue, 22 Apr 2025 23:06:36 GMT",
+    "bytes": 2072102,
+    "sha256": "3468ac30bd813fa17d755b12a911a43c44f251465604bbe8e1ca1b1b540dca66",
+    "license": "City of Chicago Data Portal Terms of Use"
+  },
+  "osm_illinois": {
+    "url": "https://download.geofabrik.de/north-america/us/illinois-261018.osm.pbf",
+    "file": "data/raw/osm_illinois/illinois-latest.osm.pbf",
+    "retrieved_at": "2026-10-20T13:00:15+00:00",
+    "last_modified": "Sun, 18 Oct 2026 23:05:48 GMT",
+    "bytes": 361613835,
+    "sha256": "0061af0dc26fa41dd1f789b5697babe734382040750257dcd7ddc421594cc2f4",
+    "license": "ODbL-1.0"
+  }
+}

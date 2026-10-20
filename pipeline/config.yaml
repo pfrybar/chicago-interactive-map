@@ -1,0 +1,43 @@
+# Pipeline settings. Distances are meters.
+
+# Local map frame: x = east, y = north, z = up, in meters, with the origin at
+# State & Madison (the zero point of Chicago's street address grid).
+# The ground is treated as flat in a transverse Mercator projection centered here;
+# tilesets are georeferenced with an east-north-up transform at this point.
+origin:
+  name: State & Madison
+  lat: 41.88202
+  lon: -87.62780
+  height: 147.0     # approx. ellipsoidal height of street level (WGS84)
+
+# Region cut out of the Illinois extract: all of Chicago plus a margin (lon/lat).
+city_bbox: [-87.95, 41.63, -87.51, 42.03]
+
+# Square tiles on a fixed grid anchored at the origin.
+tile_size: 500
+
+# Ground (streets, parks, water) is generated for every tile touching the area's
+# bounding box, plus this many extra tiles around it, so lakes and parks continue
+# past the area edge. Buildings are only placed inside the area itself.
+ground_margin_tiles: 2
+
+heights:
+  meters_per_level: 3.5        # OSM building:levels
+  meters_per_story: 3.8        # City of Chicago `stories`
+  defaults:                    # used when no height data exists (by OSM building=*)
+    garage: 3.0
+    garages: 3.0
+    shed: 3.0
+    roof: 4.0
+    house: 8.0
+    detached: 8.0
+    residential: 9.0
+    apartments: 12.0
+    commercial: 10.0
+    retail: 6.0
+    industrial: 10.0
+    church: 15.0
+    yes: 8.0
+  default: 8.0
+  small_footprint_m2: 40       # smaller than this and no data: assume a kiosk-sized structure
+  small_footprint_height: 3.5

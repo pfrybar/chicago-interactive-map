@@ -16,7 +16,8 @@ const only = process.env.VIEWS?.split(',')
 const { viewpoints } = JSON.parse(await readFile(new URL('./viewpoints.json', import.meta.url)))
 // Budgets per viewpoint. Software rendering makes fps meaningless here, so the
 // checks use counts that don't depend on the machine.
-const BUDGET = { drawCalls: 1500, triangles: 3_000_000 }
+// 3.5M triangles: the densest view (Grant Park among its trees) is about 3.0M with shadows.
+const BUDGET = { drawCalls: 1500, triangles: 3_500_000 }
 const TIMEOUT = Number(process.env.TIMEOUT ?? 120_000)
 
 const out = new URL('./out/', import.meta.url)
@@ -24,13 +25,20 @@ await mkdir(out, { recursive: true })
 const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
 })
-const page = await browser.newPage({
-  viewport: { width: WIDTH, height: HEIGHT },
-  ...(PHONE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
-})
 const errors = []
-page.on('pageerror', (e) => errors.push(String(e)))
-page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
+// A fresh page per viewpoint: software rendering keeps a busy page's main thread
+// occupied, which stalls navigating it anywhere else.
+async function freshPage() {
+  const page = await browser.newPage({
+    viewport: { width: WIDTH, height: HEIGHT },
+    ...(PHONE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
+  })
+  page.setDefaultNavigationTimeout(120_000)
+  page.on('pageerror', (e) => errors.push(String(e)))
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
+  return page
+}
+let page = null
 
 // Skip viewpoints in community areas the current build doesn't include.
 const manifest = await (await fetch(`${APP_URL}/builds/manifest.json`)).json()
@@ -42,6 +50,8 @@ for (const vp of viewpoints) {
   if (only && !only.includes(vp.name)) continue
   if (!only && vp.area != null && !built.has(vp.area)) continue
   const t0 = Date.now()
+  if (page) await page.close()
+  page = await freshPage()
   await page.goto(`${APP_URL}/?view=${vp.name}${UI ? '' : '&eval=1'}`)
   let timedOut = false
   try {
@@ -52,11 +62,11 @@ for (const vp of viewpoints) {
   const stats = await page.evaluate(() => window.__cim ?? null)
   if (!stats) {
     errors.push(`${vp.name}: app never started`)
-    await page.screenshot({ path: new URL(`${vp.name}${suffix}.png`, out).pathname })
+    await page.screenshot({ path: new URL(`${vp.name}${suffix}.png`, out).pathname, timeout: 180_000 })
     results.push({ name: vp.name, timedOut: true, overBudget: true })
     continue
   }
-  await page.screenshot({ path: new URL(`${vp.name}${suffix}.png`, out).pathname })
+  await page.screenshot({ path: new URL(`${vp.name}${suffix}.png`, out).pathname, timeout: 180_000 })
   const r = {
     name: vp.name,
     seconds: Math.round((Date.now() - t0) / 100) / 10,

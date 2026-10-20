@@ -4,7 +4,8 @@ import { chromium } from 'playwright'
 
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173'
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+let page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+page.setDefaultNavigationTimeout(120_000)
 const ready = () => page.waitForFunction(() => window.__cim?.ready, null, { timeout: 120_000, polling: 500 })
 const fail = []
 
@@ -22,6 +23,9 @@ console.log('pick:', JSON.stringify(card))
 if (!card.shown) fail.push('clicking a building did not open the card')
 
 // 2. Walking west from State & Madison stops at the building wall.
+await page.close()
+page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+page.setDefaultNavigationTimeout(120_000)
 await page.goto(`${APP_URL}/?view=state-and-madison`)
 await ready()
 await page.evaluate(() => {

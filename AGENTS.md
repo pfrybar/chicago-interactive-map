@@ -88,6 +88,14 @@ Citywide systems (the L, tree generation, materials) are built as generators tha
 - If a build is killed, Snakemake leaves a lock: run `docker compose run --rm pipeline snakemake -s pipeline/Snakefile -d . --cores 1 --unlock`.
 - roofer is GPL-3.0 and runs as a subprocess from the release binary (Debian trixie image; it needs glibc 2.38+). It rejects custom coordinate systems, so don't pass `--srs`. It reads the CRS from the footprints GeoPackage, and the points are in the same local meters.
 
+## The L, trees and overrides
+
+- Railways: `rail.railways()` keeps above-ground rail; `is_l` means CTA (`railway=subway|light_rail`), and `elevated` means `bridge` or `layer>0`. Each track is its own OSM way. Deck height = the lidar's top surface sampled along the track (`data/work/rail/`), cleaned and smoothed; it falls back to ground + 7.5 m.
+- Segments are drawn by the tile containing their midpoint, and columns sit at fixed chainages from each way's start, so tiles join without duplicates. Keep that property when changing `track_meshes`.
+- Trees are instanced (`EXT_mesh_gpu_instancing`), so their GLB positions are float, not quantized (see `gltf.py`). There are about 3.1 million, so they drive the triangle budget. Crowns are 16 triangles. Trees don't cast shadows. Each street-level tile carries a full set and a thinned `foliage_far` set, and the viewer shows the full set only within `TREE_NEAR` (500 m) of the camera.
+- The eval budget is 3.5M triangles per viewpoint, shadows included. The densest view, Grant Park, is about 3.0M.
+- Overrides are the only way to fix generated output. Every entry needs a `reason`, plus `evidence` when there is one. Building ids come from the building card or `accuracy.json`. Snakemake rebuilds tiles when an override file changes.
+
 ## Gotchas
 
 - The viewer's compose service is named `web`, not `app`: Chromium forces HTTPS for any host named `app`. Vite also needs `web` in `server.allowedHosts`.

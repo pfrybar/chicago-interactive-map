@@ -23,8 +23,11 @@ lidar:
   workers: 8      # blocks processed at once (each holds ~10M points, ~2-3 GB, in memory)
   min_density: 0.5  # points/m² inside a footprint needed to trust a lidar height
 
+tiles:
+  workers: 10           # blocks written at once (each ~2 GB)
+
 roofs:
-  workers: 7            # blocks reconstructed at once
+  workers: 5            # blocks reconstructed at once (each ~3 GB in Python plus ~2 GB in roofer)
   threads_per_block: 4  # roofer jobs within each block
 
 # Square tiles on a fixed grid anchored 32 km southwest of the origin (see grid.py).

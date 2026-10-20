@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -27,6 +28,11 @@ from .config import WORK, load_config
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
 from .lidar import BRIDGE, GROUND, HIGH_NOISE, NOISE, WATER, Dem, block_paths, read_points
+
+# Workers start from a fresh interpreter instead of forking: a fork shares the parent's
+# memory copy-on-write, and Python's reference counting soon copies all of it (the
+# parent holds every building in the city), multiplying memory by the worker count.
+_FRESH = multiprocessing.get_context("forkserver")
 
 ROOFS = WORK / "roofs"
 MARGIN = 10.0
@@ -218,7 +224,7 @@ def run(blocks, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     print(f"  roofs: {len(jobs)} blocks, {workers} at a time, {threads} roofer jobs each")
     t0 = time.time()
     done = made = crashed = 0
-    with ProcessPoolExecutor(workers) as pool:
+    with ProcessPoolExecutor(mp_context=_FRESH, max_workers=workers) as pool:
         for n, (key, nb, nm, nf, secs) in enumerate(pool.map(_block_job, jobs), 1):
             done += nb
             made += nm
@@ -236,11 +242,11 @@ def load(key: Key) -> dict[str, tuple] | None:
     if not p.exists():
         return None
     d = np.load(p)
-    if not len(d["ids"]):
+    ids = d["ids"]
+    if not len(ids):
         return {}
-    out = {}
-    for k, bid in enumerate(d["ids"]):
-        v0, v1 = d["offsets_v"][k], d["offsets_v"][k + 1]
-        t0, t1 = d["offsets_t"][k], d["offsets_t"][k + 1]
-        out[str(bid)] = (d["positions"][v0:v1], d["normals"][v0:v1], d["indices"][t0:t1])
-    return out
+    # Read each array once: indexing an NpzFile decompresses the whole array every time.
+    ov, ot = d["offsets_v"], d["offsets_t"]
+    pos, nrm, idx = d["positions"], d["normals"], d["indices"]
+    return {str(bid): (pos[ov[k]:ov[k + 1]], nrm[ov[k]:ov[k + 1]], idx[ot[k]:ot[k + 1]])
+            for k, bid in enumerate(ids)}

@@ -68,4 +68,4 @@ rule tiles:
     output: f"data/builds/{BUILD}/tileset.json"
     params: areas=",".join(map(str, AREAS))
     threads: workflow.cores
-    shell: f"CIM_WORKERS={{threads}} {PY} tiles --areas {{params.areas}} --build {BUILD} && {PY} agent-state"
+    shell: f"{PY} tiles --areas {{params.areas}} --build {BUILD} && {PY} agent-state"

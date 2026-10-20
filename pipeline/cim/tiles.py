@@ -13,6 +13,7 @@ import math
 import os
 import shutil
 import time
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timezone
 
@@ -31,6 +32,11 @@ from .grid import BLOCK_LEVEL, Key, leaves_covering
 from .grid import index as grid_index
 from .ground import LEVEL_LAYERS, UPPER_LAYERS, raw_layers, stack
 from .osm import load_features
+
+# Workers start from a fresh interpreter instead of forking: a fork shares the parent's
+# memory copy-on-write, and Python's reference counting soon copies all of it (the
+# parent holds every building in the city), multiplying memory by the worker count.
+_FRESH = multiprocessing.get_context("forkserver")
 
 # Default colors so the tiles look reasonable in any 3D Tiles viewer.
 # The app replaces these with its own materials by name.
@@ -70,7 +76,9 @@ def _ground_simplify(level: int) -> float:
 
 
 def _workers() -> int:
-    return max(1, min(os.cpu_count() or 1, int(os.environ.get("CIM_WORKERS", 16))))
+    """Block workers. Each holds a block's terrain, roofs and features (about 2 GB)."""
+    limit = int(os.environ.get("CIM_WORKERS", load_config()["tiles"]["workers"]))
+    return max(1, min(os.cpu_count() or 1, limit))
 
 
 # ---------------------------------------------------------------- mesh content
@@ -178,10 +186,10 @@ def _plane_residual(z: np.ndarray) -> float:
 def _ground_cells(bounds, level: int, dem):
     """Triangulation cells (125 m, scaled per level) with the longest triangle edge each may keep.
 
-    Where the ground is close to a plane, triangles stay as earcut made them (a plane
-    is exact between vertices). Elsewhere edges are split down to 25 m, or 10 m
-    where the ground departs from a plane by more than 3 m (rail trenches,
-    bridge approaches, garage decks).
+    Where the ground is within 1.5 m of a plane (most of Chicago), triangles stay as
+    earcut made them. Elsewhere edges are split down to 25 m, or 10 m where the
+    ground departs from a plane by more than 6 m (rail trenches, bridge approaches,
+    garage decks).
     """
     base = GROUND_CELL * 2 ** level
     scale = 2 ** level
@@ -189,7 +197,7 @@ def _ground_cells(bounds, level: int, dem):
     for c in _cells(bounds, base):
         win = dem.window(c) if dem is not None else None
         r = _plane_residual(win) if win is not None and win.size else 0.0
-        max_len = None if r < 0.5 * scale else (25.0 * scale if r < 3.0 * scale else 10.0 * scale)
+        max_len = None if r < 1.5 * scale else (25.0 * scale if r < 6.0 * scale else 10.0 * scale)
         out.append((c, max_len))
     return out
 
@@ -336,6 +344,10 @@ def _block_job(args):
                if k != "land"}
     # A 16 m version of the elevation model for the levels above the blocks.
     coarse = None if dem is None else (dem.z[::8, ::8].astype(np.float16), dem.x0, dem.y0, dem.cell * 8)
+    import resource
+    peak_gb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
+    if peak_gb > 4:
+        print(f"    block {block.name}: peak memory {peak_gb:.1f} GB", flush=True)
     return (block, metas, {k: shapely.to_wkb(v) for k, v in extents.items()}, summary, minimap, coarse,
             time.time() - t0)
 
@@ -370,8 +382,8 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
     from .lidar import block_paths
     paths = [block_paths(k)[1] for k in blocks]
     roofs = [pd.read_parquet(p) for p in paths if p.exists()]
-    if not roofs:
-        return buildings
+    if not roofs:  # no lidar for these blocks: keep the mapped heights
+        return buildings.assign(height_prev=buildings["height"], source_prev=buildings["height_source"])
     roofs = pd.concat(roofs, ignore_index=True).drop_duplicates("id").set_index("id")
     b = buildings.join(roofs, on="id")
     b["height_prev"], b["source_prev"] = b["height"], b["height_source"]
@@ -434,7 +446,7 @@ def build(areas: list[int], build_name: str) -> dict:
 
     metas, extents, summaries, minimap_parts, coarse_parts = {}, {}, {}, [], []
     print(f"  {len(leaves)} leaf tiles in {len(jobs)} blocks, {_workers()} workers")
-    with ProcessPoolExecutor(_workers()) as pool:
+    with ProcessPoolExecutor(mp_context=_FRESH, max_workers=_workers()) as pool:
         for n, (block, m, ext, summ, mm, coarse, secs) in enumerate(pool.map(_block_job, jobs), 1):
             if coarse is not None:
                 coarse_parts.append(coarse)
@@ -455,20 +467,24 @@ def build(areas: list[int], build_name: str) -> dict:
         parents: dict[Key, list[Key]] = {}
         for k in level_keys:
             parents.setdefault(k.parent(), []).append(k)
-        next_summaries = {}
+        jobs = []
         for key, kids in sorted(parents.items()):
             ext = shapely.union_all([extents[k] for k in kids])
             extents[key] = ext
             raw = {layer: shapely.union_all([summaries[k][layer] for k in kids if layer in summaries[k]])
                    for layer in UPPER_LAYERS}
-            ground = stack(raw, key.polygon(), UPPER_LAYERS, _ground_simplify(level))
-            ground = {k: v.intersection(ext) for k, v in ground.items()}
             x0, y0, x1, y1 = key.bounds
             inside = (buildings["cx"] >= x0) & (buildings["cx"] < x1) & (buildings["cy"] >= y0) & (buildings["cy"] < y1)
-            meta = _write_tile(out_dir, key, ground, buildings[inside], coarse_dem)
-            if meta:
-                metas[key] = meta
-            next_summaries[key] = {k: v for k, v in ground.items() if k in UPPER_LAYERS}
+            sub = _keep(buildings[inside], level)
+            if _rules(level).get("merge"):
+                sub = buildings[inside]  # masses need the small buildings too
+            jobs.append((out_dir, key, level, raw, ext, sub[_TILE_COLUMNS], coarse_dem))
+        next_summaries = {}
+        with ProcessPoolExecutor(mp_context=_FRESH, max_workers=_workers()) as pool:
+            for key, meta, summ in pool.map(_upper_job, jobs):
+                if meta:
+                    metas[key] = meta
+                next_summaries[key] = summ
         summaries = next_summaries
         level_keys = sorted(parents)
     root_key = level_keys[0]
@@ -552,6 +568,19 @@ def _far_lake(out_dir, root_key: Key, extent) -> dict | None:
     hx, hy = (x1 - x0) / 2, (y1 - y0) / 2
     return {"boundingVolume": {"box": [x0 + hx, y0 + hy, _water_z(), hx, 0, 0, 0, hy, 0, 0, 0, 1]},
             "geometricError": 0, "content": {"uri": uri}}
+
+
+_TILE_COLUMNS = ["id", "osm_id", "kind", "name", "height", "min_height", "height_source", "year_built",
+                 "geometry", "cx", "cy", "fp_area", "base", "height_prev", "source_prev"]
+
+
+def _upper_job(args):
+    """Write one tile above the block level (4 km and up). Runs in a worker process."""
+    out_dir, key, level, raw, ext, buildings, dem = args
+    ground = stack(raw, key.polygon(), UPPER_LAYERS, _ground_simplify(level))
+    ground = {k: v.intersection(ext) for k, v in ground.items()}
+    meta = _write_tile(out_dir, key, ground, buildings, dem)
+    return key, meta, {k: v for k, v in ground.items() if k in UPPER_LAYERS}
 
 
 def _mosaic(parts):

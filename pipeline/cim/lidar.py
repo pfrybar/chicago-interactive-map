@@ -13,6 +13,7 @@ Per block this writes, under data/work/lidar/:
 import io
 import json
 import time
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import lru_cache
 
@@ -28,6 +29,11 @@ from scipy import ndimage
 from .config import RAW, WORK, load_config, load_sources
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
+
+# Workers start from a fresh interpreter instead of forking: a fork shares the parent's
+# memory copy-on-write, and Python's reference counting soon copies all of it (the
+# parent holds every building in the city), multiplying memory by the worker count.
+_FRESH = multiprocessing.get_context("forkserver")
 
 LIDAR_RAW = RAW / "lidar_cook_2017"
 LIDAR_WORK = WORK / "lidar"
@@ -358,7 +364,7 @@ def run(blocks: dict, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     workers = cfg()["workers"]
     print(f"  lidar: {len(jobs)} blocks to process at depth {depth}, {workers} workers")
     t0 = time.time()
-    with ProcessPoolExecutor(workers) as pool:
+    with ProcessPoolExecutor(mp_context=_FRESH, max_workers=workers) as pool:
         for n, (key, npts, secs) in enumerate(pool.map(_block_job, jobs), 1):
             if n % 5 == 0 or n == len(jobs):
                 cached = sum(f.stat().st_size for f in (LIDAR_RAW / "ept-data").glob("*.laz")) / 1e9

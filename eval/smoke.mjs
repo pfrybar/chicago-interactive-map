@@ -30,20 +30,24 @@ await page.evaluate(() => {
   const t = p.clone(); t.x -= 100 // face west
   controls.setView('walk', p, t)
 })
-// Software rendering is slow and frame time is capped, so hold Shift (fast walk).
+// Software rendering is slow and frame time is capped, so hold Shift (fast walk)
+// and keep going until the walker stops (or 60 s pass).
 await page.keyboard.down('ShiftLeft')
 await page.keyboard.down('KeyW')
 const xs = []
-for (let i = 0; i < 6; i++) {
-  await page.waitForTimeout(2500)
+for (let i = 0; i < 30; i++) {
+  await page.waitForTimeout(2000)
   xs.push(await page.evaluate(() => window.__cim.camera.position[0]))
+  const n = xs.length
+  if (n >= 3 && Math.abs(xs[n - 1] - xs[n - 3]) < 0.05) break
 }
 await page.keyboard.up('KeyW')
 await page.keyboard.up('ShiftLeft')
 console.log('walk west x:', xs.map((x) => x.toFixed(2)).join(' → '))
 if (!(xs[0] < 4)) fail.push('walking did not move the camera')
-if (Math.abs(xs[5] - xs[4]) > 0.05) fail.push('walker did not stop at the wall')
-if (xs[5] < -40) fail.push('walker went through the building')
+const last = xs[xs.length - 1]
+if (Math.abs(last - xs[xs.length - 3]) >= 0.05) fail.push('walker did not stop at the wall')
+if (last < -40) fail.push('walker went through the building')
 
 await browser.close()
 console.log(fail.length ? `FAILED: ${fail.join('; ')}` : 'ok')

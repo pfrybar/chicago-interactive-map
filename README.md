@@ -4,11 +4,12 @@ A 3D map of Chicago you can walk through in a browser, built only from open data
 
 ![The Loop from over the lake](docs/images/loop-overview.png)
 
-**Status: phase 1 is complete.** All 77 community areas are built: 843,340 buildings as simple extruded blocks, plus streets, paths, parks, the river and Lake Michigan. You can fly over the city like a map or walk through any neighborhood at street level.
+**Status: phase 2 is complete.** All 77 community areas are built: 843,340 buildings, 95% of them with heights measured by lidar and 704,898 with real roof shapes (gables, hips, setbacks), standing on real ground elevation. Streets, paths, parks, the river and Lake Michigan complete the map. You can fly over the city like a map or walk through any neighborhood at street level.
 
 | | |
 |---|---|
 | ![Wrigley Field and Lake View](docs/images/wrigley-field.png) | ![Hyde Park and Jackson Park](docs/images/hyde-park.png) |
+| ![Bungalow roofs in Portage Park](docs/images/bungalow-belt.png) | ![Marina City from the Riverwalk](docs/images/riverwalk.png) |
 | ![18th Street in Pilsen, street level](docs/images/pilsen-18th-street.png) | ![The whole city from over the lake](docs/images/city-overview.png) |
 
 ## Quick start
@@ -16,11 +17,11 @@ A 3D map of Chicago you can walk through in a browser, built only from open data
 You need **Docker** and **bash**. Everything else runs in containers.
 
 ```bash
-./dev build all  # download sources and build the whole city (about 15 minutes the first time)
+./dev build all  # download sources and build the whole city (about 3.5 hours the first time)
 ./dev app        # start the viewer
 ```
 
-The full city downloads about 900 MB and uses about 2.6 GB of disk (plus about 3 GB of Docker images); the tiles themselves are 1.1 GB. To try it faster, `./dev build` builds only the Loop (about 3 minutes).
+The first full build downloads about 13 GB (mostly lidar) and needs about 20 GB of disk plus about 3 GB of Docker images. Most of the time goes to roofer, about 2.5 hours on 28 cores. After that, downloads and roofs are cached, and a rebuild of the tiles takes about 17 minutes. The tiles themselves are 1.5 GB. It needs a machine with 32 GB of memory at the default settings (see `pipeline/config.yaml`). To try it faster, `./dev build` builds only the Loop (about 5 minutes).
 
 Open <http://localhost:5173>.
 

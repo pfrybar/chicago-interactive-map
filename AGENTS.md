@@ -41,7 +41,7 @@ Dependency versions are pinned exactly. When adding or upgrading one, pick a rel
 
 ## Testing instructions
 
-- `./dev test` must pass before every commit. After changing the viewer's controls or picking, also run `./dev smoke` (opens a building card, walks into a wall).
+- `./dev test` must pass before every commit. After changing the viewer's controls or picking, also run `./dev smoke` (opens a building card, walks into a wall and waits until it stops).
 - Add a pytest for new pipeline logic in `pipeline/tests/`. Geometry tests use small synthetic shapes, not downloaded data.
 - **Any change that affects what's rendered** (pipeline output, materials, lighting, camera) needs `./dev eval` before and after. Look at the screenshots in `eval/out/`, and include the relevant before/after images and the draw-call and triangle numbers in the PR description. `UI=1` keeps the panels in the screenshots; `PHONE=1` uses a phone-sized touch viewport (pass them with `docker compose run --rm -e UI=1 eval node render.mjs`).
 - To add a viewpoint, edit `eval/viewpoints.json`. Coordinates are local meters (see below). Name it after the place, not the feature being tested.
@@ -83,7 +83,9 @@ Citywide systems (the L, tree generation, materials) are built as generators tha
 - Each lidar point counts toward the smallest footprint containing it. Footprints more than 10% covered by others keep their mapped height (`apply_lidar` in `tiles.py`). The overlap rule exists because of outlines drawn around tower parts (Willis Tower).
 - Elevations: local z = NAVD88 − `ground_datum` (181 m), so street level at State & Madison is about 0. Water is flat at `water_level` (176.5 m). The ground model includes bridge-deck points only on mapped road and path bridges, because the class also covers L tracks and viaducts.
 - Multi-level streets (Wacker, Columbus, Illinois Center) show up as smooth plateaus in the terrain, not decks. Real decks would need to be modeled as structures.
-- Memory: each lidar worker holds about 2–3 GB. Keep `lidar.workers` at 8 or below on a 32 GB machine, and don't run a second pipeline job while the citywide lidar step is running.
+- Memory: each lidar worker holds about 2–3 GB; each roofs worker about 3 GB plus its roofer process (roofer's memory grows with the area it covers, so it runs per 1 km quadrant); each tile worker about 1–2 GB. The defaults in `pipeline/config.yaml` fit 32 GB. Don't run a second pipeline job while a citywide step is running. Worker pools use `forkserver` (see `_FRESH`): forked workers would copy the parent's memory.
+- `np.load` on an `.npz` decompresses the whole array on every `d["key"]` access. Read each array once into a variable before looping (see `roofs.load`).
+- If a build is killed, Snakemake leaves a lock: run `docker compose run --rm pipeline snakemake -s pipeline/Snakefile -d . --cores 1 --unlock`.
 - roofer is GPL-3.0 and runs as a subprocess from the release binary (Debian trixie image; it needs glibc 2.38+). It rejects custom coordinate systems, so don't pass `--srs`. It reads the CRS from the footprints GeoPackage, and the points are in the same local meters.
 
 ## Gotchas

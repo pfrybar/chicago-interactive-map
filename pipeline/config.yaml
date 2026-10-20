@@ -13,7 +13,21 @@ origin:
 # Region cut out of the Illinois extract: all of Chicago plus a margin (lon/lat).
 city_bbox: [-87.95, 41.63, -87.51, 42.03]
 
-# Square tiles on a fixed grid anchored at the origin.
+# Elevations: local z = NAVD88 elevation - ground_datum, so street level at
+# State & Madison is about 0. Lake Michigan and the river are drawn at water_level.
+ground_datum: 181.0
+water_level: 176.5
+
+lidar:
+  depth: 9        # EPT octree depth to read; 9 is about 4 points/m², 10 is the full ~22
+  workers: 8      # blocks processed at once (each holds ~10M points, ~2-3 GB, in memory)
+  min_density: 0.5  # points/m² inside a footprint needed to trust a lidar height
+
+roofs:
+  workers: 7            # blocks reconstructed at once
+  threads_per_block: 4  # roofer jobs within each block
+
+# Square tiles on a fixed grid anchored 32 km southwest of the origin (see grid.py).
 tile_size: 500
 
 # Ground (streets, parks, water) is generated for every tile touching the area's

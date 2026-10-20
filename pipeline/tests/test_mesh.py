@@ -34,3 +34,19 @@ def test_north_maps_to_negative_gltf_z():
     mb = MeshBuilder()
     add_flat(mb, box(0, 100, 1, 101), 0.0)
     assert mb.arrays()["POSITION"][:, 2].max() == -100.0
+
+
+def test_refine_splits_long_edges_without_cracks():
+    from cim.mesh import refine, triangulate
+    verts, tris = triangulate(box(0, 0, 100, 40))
+    v, t = refine(verts, tris, 10.0)
+    tri = v[t.reshape(-1, 3)]
+    edges = np.concatenate([tri[:, [0, 1]], tri[:, [1, 2]], tri[:, [2, 0]]])
+    assert np.linalg.norm(edges[:, 0] - edges[:, 1], axis=1).max() <= 10.0
+    e1, e2 = tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]
+    assert abs(np.abs(e1[:, 0] * e2[:, 1] - e1[:, 1] * e2[:, 0]).sum() / 2 - 4000) < 1e-6
+    # Conforming: every interior edge is shared by exactly two triangles.
+    key = np.sort(np.concatenate([t.reshape(-1, 3)[:, [0, 1]], t.reshape(-1, 3)[:, [1, 2]],
+                                  t.reshape(-1, 3)[:, [2, 0]]]), axis=1)
+    _, counts = np.unique(key, axis=0, return_counts=True)
+    assert set(counts) <= {1, 2}

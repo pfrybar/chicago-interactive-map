@@ -29,3 +29,14 @@ city_footprints:
   license: City of Chicago Data Portal Terms of Use
   attribution: City of Chicago
   homepage: https://data.cityofchicago.org/d/syp8-uezg
+
+lidar_cook_2017:
+  description: >
+    USGS 3D Elevation Program lidar, Cook County 2017 (about 28 points/m², read at
+    reduced density). Entwine Point Tile octree on the public usgs-lidar-public bucket;
+    `python -m cim lidar` fetches only the nodes it needs and caches them.
+  url: https://usgs-lidar-public.s3.amazonaws.com/USGS_LPC_IL_4County_Cook_2017_LAS_2019/
+  file: ept.json
+  license: Public domain (U.S. Government work)
+  attribution: U.S. Geological Survey 3DEP
+  homepage: https://www.usgs.gov/3d-elevation-program

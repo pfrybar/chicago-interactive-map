@@ -701,6 +701,15 @@
     "sha256": "3468ac30bd813fa17d755b12a911a43c44f251465604bbe8e1ca1b1b540dca66",
     "license": "City of Chicago Data Portal Terms of Use"
   },
+  "lidar_cook_2017": {
+    "url": "https://usgs-lidar-public.s3.amazonaws.com/USGS_LPC_IL_4County_Cook_2017_LAS_2019/",
+    "ept_json_sha256": "20ac4f4318a60f46c348ae3be2222edbb1b387da536a582aae7a2bcd08691850",
+    "depth": 9,
+    "nodes_cached": 50119,
+    "bytes": 12419839472,
+    "retrieved_at": "2026-10-20T16:55:49+00:00",
+    "license": "Public domain (U.S. Government work)"
+  },
   "osm_illinois": {
     "url": "https://download.geofabrik.de/north-america/us/illinois-261018.osm.pbf",
     "file": "data/raw/osm_illinois/illinois-latest.osm.pbf",

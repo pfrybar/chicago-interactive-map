@@ -15,6 +15,7 @@ const evalMode = params.has('eval')
 if (evalMode) document.body.classList.add('eval')
 
 const HEIGHT_SOURCES: Record<string, string> = {
+  lidar: 'measured by USGS lidar, 2017',
   'osm:height': 'OpenStreetMap height',
   'osm:levels': 'from OpenStreetMap floor count',
   'city:stories': 'from City of Chicago floor count',
@@ -44,7 +45,7 @@ async function start() {
 
   const city = new City(build, camera, renderer, frameMatrix(build.frame.enuToEcef))
   scene.add(city.tiles.group)
-  const controls = new Controls(camera, canvas, () => city.buildingMeshes)
+  const controls = new Controls(camera, canvas, () => City.shown(city.buildingMeshes), () => City.shown(city.groundMeshes))
   // For debugging from the browser console or the eval harness.
   ;(window as any).__cimDebug = { stage, city, controls }
 
@@ -109,7 +110,7 @@ async function start() {
     if (controls.mode !== 'map' || down.distanceTo(new Vector2(e.clientX, e.clientY)) > 5) return
     const ndc = new Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1)
     raycaster.setFromCamera(ndc, camera)
-    const hit = raycaster.intersectObjects([...city.buildingMeshes], false)[0]
+    const hit = raycaster.intersectObjects(City.shown(city.buildingMeshes), false)[0]
     clearHighlight()
     if (!hit?.face) return showCard(null)
     const found = City.featureAt(hit.object as Mesh, hit.face.a)
@@ -188,6 +189,8 @@ function showCard(f: Feature | null) {
   const rows: [string, string][] = [
     ['Height', `${f.h.toFixed(0)} m / ${(f.h / 0.3048).toFixed(0)} ft <small>${HEIGHT_SOURCES[f.src] ?? f.src}</small>`],
   ]
+  if (f.prev) rows.push(['Before lidar', `${f.prev[0].toFixed(0)} m <small>${HEIGHT_SOURCES[f.prev[1]] ?? f.prev[1]}</small>`])
+  rows.push(['Roof', f.lod === 2 ? 'Shape from lidar <small>roofer LoD 2.2</small>' : 'Flat block'])
   if (f.minH) rows.push(['Starts at', `${f.minH.toFixed(0)} m above ground`])
   if (f.year) rows.push(['Built', String(f.year)])
   const osm = f.osm ? `<a href="https://www.openstreetmap.org/${f.osm[0] === 'w' ? 'way' : 'relation'}/${f.osm.slice(1)}" target="_blank" rel="noopener">OpenStreetMap ${f.osm}</a>` : ''

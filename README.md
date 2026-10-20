@@ -54,11 +54,15 @@ sources.yaml ──fetch──► data/raw/        downloads, recorded in source
              pipeline (Python, in Docker, run by Snakemake)
                osm        cut Chicago out of the Illinois OpenStreetMap extract
                buildings  footprints + heights per community area, joined with City of Chicago attributes
-               tiles      per 2 km block, in parallel: ground layers (streets, paths, water, parks,
-                          land) and buildings, written as a level-of-detail quadtree of glTF tiles
+               lidar      per 2 km block: ground elevation model (2 m), roof heights per footprint,
+                          building points the map doesn't have (USGS 3DEP, 2017)
+               roofs      per 2 km block: LoD 2.2 roof shapes with roofer
+               tiles      per 2 km block, in parallel: ground draped over the terrain, buildings
+                          with lidar heights and roofs, written as a level-of-detail quadtree
                           │
                           ▼
-                     data/builds/<build>/   tileset.json, tiles/<level>/*.glb, minimap.webp, report.json
+                     data/builds/<build>/   tileset.json, tiles/<level>/*.glb, minimap.webp,
+                                            report.json, accuracy.json
                           │
                           ▼
              app (three.js + 3DTilesRendererJS, Vite)   map and walk modes in the browser
@@ -66,7 +70,10 @@ sources.yaml ──fetch──► data/raw/        downloads, recorded in source
 
 - **Community areas are the unit of work.** Chicago has 77 official community areas. `./dev build 32` builds only the Loop, and `./dev build all` builds the city. Buildings are placed when their center falls inside a built area. Ground layers extend two tiles (1 km) past the edge, so the lake and parks don't stop at the boundary.
 - **Level of detail.** The smallest tiles (500 m) hold every building and every street. Each level up doubles the tile size and keeps less: first only bigger buildings and major roads, eventually just tall towers, water and parks. As the camera gets closer, the viewer swaps each tile for its four more detailed children, so full detail loads only within about a kilometer. Vertex data is quantized (`KHR_mesh_quantization`) to keep tiles small.
-- **Heights** come from, in order: OpenStreetMap `height`, OpenStreetMap floor count, the City of Chicago floor count, then a default by building type. Each building records which source was used; you can see it in the building card. Citywide, about half of the buildings have real height data, almost all of it from OpenStreetMap floor counts. Phase 2 replaces the estimates with lidar.
+- **Heights come from lidar.** The 2017 USGS survey of Cook County is read straight from its public cloud copy, at about 4 points per m² (a quarter of full density), and only for the blocks being built. A building's height is the 95th percentile of the lidar points on its roof, minus the lowest ground under it. Mapped heights are kept where lidar can't be trusted: floating parts, building parts with an explicit OpenStreetMap height, and footprints mostly covered by other footprints, where lidar only sees the top one. Buildings without enough lidar points fall back to OpenStreetMap height, OpenStreetMap floor count, City of Chicago floor count, then a default by type. The building card shows the source and the height before lidar.
+- **Roof shapes** come from [roofer](https://github.com/3DBAG/roofer), the open-source tool behind the Dutch national 3D building dataset (3DBAG). It finds the roof planes in each footprint's points, so houses get gables and hips, and towers get their setbacks. It runs as a separate program (GPL-3.0).
+- **Terrain.** Streets, parks and land are draped over a 2 m ground model built from the lidar's ground points, plus bridge decks so roads stay on their bridges. Triangles are refined only where the ground departs from a plane. The river and lake are flat at water level (176.5 m), with walls up to the banks, left open under bridges. Buildings start at the ground under them.
+- **Accuracy report.** Every build writes `accuracy.json`. It compares the pre-lidar heights with lidar for each source and lists, per community area, the largest disagreements, footprints where the lidar sees nothing (maybe demolished), and clusters of building points with no footprint (maybe missing from the map). These are the starting point for the neighborhood walk's verify pass.
 - **Coordinates.** Everything is in meters from **State & Madison**, the zero point of Chicago's street address grid: x east, y north, z up. Tilesets carry the transform to Earth-centered coordinates, so other 3D Tiles viewers such as Cesium should be able to place them (not yet tested).
 - **Builds are immutable folders.** `data/builds/manifest.json` says which one the viewer loads.
 
@@ -86,6 +93,7 @@ sources.yaml ──fetch──► data/raw/        downloads, recorded in source
 | [OpenStreetMap](https://www.openstreetmap.org/copyright), via the [Geofabrik](https://download.geofabrik.de/) Illinois extract | Buildings, streets, paths, water, parks | ODbL 1.0 · © OpenStreetMap contributors |
 | [City of Chicago building footprints](https://data.cityofchicago.org/d/syp8-uezg) | Floor counts, year built, names, buildings missing from OSM | City of Chicago Data Portal Terms of Use |
 | [City of Chicago community areas](https://data.cityofchicago.org/d/igwz-8jzy) | Build units and boundaries | City of Chicago Data Portal Terms of Use |
+| [USGS 3DEP lidar, Cook County 2017](https://www.usgs.gov/3d-elevation-program) ([on AWS](https://registry.opendata.aws/usgs-lidar/)) | Building heights, roof shapes, ground elevation | Public domain |
 
 The viewer shows attribution for every source. Google and Apple map content (Street View, Look Around, Google 3D Tiles) is **not** used anywhere, not even as visual reference. Their terms forbid building map data from it. See [AGENTS.md](AGENTS.md#data-sources).
 
@@ -97,7 +105,7 @@ The project doesn't have a code license yet. Choose one before publishing the re
 |---|---|---|
 | 0 | Repo, Docker pipeline, source manifest, coordinate frame, viewpoint screenshots | Done |
 | 1 | Simple blocks for buildings, streets, water and parks across all 77 areas; map and walk modes; minimap; level of detail | **Done** |
-| 2 | Accurate heights and roof shapes from USGS lidar; real ground elevation; accuracy report | Planned |
+| 2 | Accurate heights and roof shapes from USGS lidar; real ground elevation; accuracy report | **Done** |
 | 3 | Citywide generators for the L (track, elevated structure, stations) and trees; first neighborhood-walk pass that checks each area | Planned |
 | 4 | Realistic rendering (materials, windows, reflections, sky; see [`demos/facade-layers.html`](demos/facade-layers.html)); facade recipes from Mapillary and KartaView photos | Planned |
 | 5 | Live L trains, landmark photo captures, an in-app "report a problem" button, iOS and Android apps via Capacitor | Planned |

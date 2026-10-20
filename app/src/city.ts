@@ -18,6 +18,10 @@ export interface Feature {
   name?: string
   year?: number
   osm?: string
+  /** Height and source before lidar replaced it. */
+  prev?: [number, string]
+  /** 2 when the roof shape comes from the lidar (roofer LoD 2.2). */
+  lod?: number
 }
 
 export interface Area { number: number; name: string; center: [number, number]; rings: number[][][] }
@@ -51,6 +55,7 @@ const MATERIALS: Record<string, Material> = {
   water: new MeshStandardMaterial({ color: new Color(0.035, 0.11, 0.17), roughness: 0.08, metalness: 0 }),
   road: new MeshLambertMaterial({ color: new Color(0.19, 0.185, 0.18) }),
   path: new MeshLambertMaterial({ color: new Color(0.55, 0.54, 0.51) }),
+  wall: new MeshLambertMaterial({ color: new Color(0.42, 0.40, 0.37) }),
 }
 
 export async function loadBuild(): Promise<BuildInfo> {
@@ -67,6 +72,8 @@ export class City {
   readonly tiles: TilesRenderer
   /** Building meshes currently loaded; used for picking and walk collisions. */
   readonly buildingMeshes = new Set<Mesh>()
+  /** Ground meshes currently loaded; walk mode stands on them. */
+  readonly groundMeshes = new Set<Mesh>()
   ready = false
 
   constructor(build: BuildInfo, camera: PerspectiveCamera, renderer: WebGLRenderer, frameMatrix: Matrix4) {
@@ -100,13 +107,18 @@ export class City {
           this.buildingMeshes.add(mesh)
         } else {
           mesh.receiveShadow = true
+          if (key !== 'water' && key !== 'wall') {
+            mesh.geometry.computeBoundsTree()
+            this.groundMeshes.add(mesh)
+          }
         }
       })
     })
     tiles.addEventListener('dispose-model', ({ scene }: { scene: Object3D }) => {
       scene.traverse((o) => {
         const mesh = o as Mesh
-        if (mesh.isMesh && this.buildingMeshes.delete(mesh)) mesh.geometry.disposeBoundsTree()
+        if (!mesh.isMesh) return
+        if (this.buildingMeshes.delete(mesh) || this.groundMeshes.delete(mesh)) mesh.geometry.disposeBoundsTree()
       })
     })
     tiles.addEventListener('tiles-load-end', () => { this.ready = true })
@@ -148,6 +160,17 @@ export class City {
 
   update(): void {
     this.tiles.update()
+  }
+
+  /** Only meshes that are actually shown: hidden coarser or finer tiles stay loaded but don't count. */
+  static shown(meshes: Iterable<Mesh>): Mesh[] {
+    const out: Mesh[] = []
+    for (const m of meshes) {
+      let o: Object3D | null = m
+      while (o && o.visible) o = o.parent
+      if (!o) out.push(m)
+    }
+    return out
   }
 }
 

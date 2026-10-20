@@ -115,7 +115,15 @@ def raw_layers(feats, extent: Polygon) -> dict[str, shapely.Geometry]:
     hw = feats["highway"]
     lines = feats.geometry.geom_type == "LineString"
     roads = feats[hw.isin(ROAD_WIDTH.keys()) & lines]
+    on_bridge = feats["bridge"].notna() & (feats["bridge"] != "no") & lines
     return {
+        # Not drawn: where walls along the water must stay open (under bridges).
+        "bridge": unary_union([
+            g.buffer(_width(r, ROAD_WIDTH if r["highway"] in ROAD_WIDTH else PATH_WIDTH) / 2 + 1.0, cap_style="flat")
+            for _, r in feats[on_bridge & (hw.isin(ROAD_WIDTH.keys()) | hw.isin(PATH_WIDTH.keys()))].iterrows()
+            for g in [r.geometry]
+        ] + [feats[on_bridge & feats["railway"].notna()].geometry.buffer(5, cap_style="flat").union_all()]
+          if on_bridge.any() else []),
         "road": _buffer_lines(roads, ROAD_WIDTH),
         "road_major": _buffer_lines(roads[roads["highway"].isin(MAJOR_ROADS)], ROAD_WIDTH),
         "path": unary_union([
@@ -136,8 +144,13 @@ def raw_layers(feats, extent: Polygon) -> dict[str, shapely.Geometry]:
 
 
 def stack(raw: dict, extent: Polygon, layers: list[str], simplify: float = 0.0) -> dict[str, MultiPolygon]:
-    """Clip `layers` (top first) to `extent`, cut out what lies above, and fill the rest with land."""
+    """Clip `layers` (top first) to `extent`, cut out what lies above, and fill the rest with land.
+
+    The result also carries "bridge" (not drawn) when the raw layers have it.
+    """
     out, above = {}, Polygon()
+    if raw.get("bridge") is not None and not raw["bridge"].is_empty:
+        out["bridge"] = shapely.make_valid(shapely.clip_by_rect(raw["bridge"], *extent.bounds))
     for layer in layers:
         g = raw.get(layer)
         if g is None or g.is_empty:

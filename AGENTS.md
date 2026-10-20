@@ -63,6 +63,9 @@ Dependency versions are pinned exactly. When adding or upgrading one, pick a rel
 
 ## The neighborhood walk
 
+The `verify` pass starts from `data/builds/<build>/accuracy.json`. Per area it lists the largest height disagreements, footprints with no lidar returns, and unmapped building-point clusters, each with local coordinates (`at`) and OSM ids. Check each item against open imagery (Mapillary, KartaView). Record OSM errors as notes for a person to fix (no automated OSM edits), and record fixes to our output as overrides.
+
+
 Agents improve the map one community area and one **pass** at a time. A pass is a type of work, such as `massing`, `verify`, `trees` or `recipes`.
 
 1. Pick an area from `agent/state/areas.yaml`. Prefer areas marked `stale: true`, then `todo` in the current pass, in this order: Loop (32), Near North Side (8), Near West Side (28), Near South Side (33), then outward.
@@ -72,6 +75,16 @@ Agents improve the map one community area and one **pass** at a time. A pass is 
 5. Set the pass to `done` (or `needs_review` if a person should look) with the date.
 
 Citywide systems (the L, tree generation, materials) are built as generators that run for every area. Don't build them by hand for one neighborhood. Per-area passes check and correct the generators' output.
+
+## Lidar, terrain and roofs
+
+- Lidar is read from the public EPT copy of the 2017 Cook County survey at octree depth `lidar.depth` (9 ≈ 4 points/m²) and cached in `data/raw/lidar_cook_2017/` (about 12 GB for the city). `python -m cim lidar` and `python -m cim roofs` skip blocks whose outputs exist; pass `--force` after changing their code. Snakemake reruns them when their modules change, but the per-block cache still applies.
+- The survey's classes are unreliable downtown: many roofs are classed as vegetation (5) or unclassified (1). Roof statistics use building-class points only when they're at least 30% of a footprint's points, otherwise all points above ground. roofer gets our own point cloud: ground as class 2, and points above ground inside footprints as class 6.
+- Each lidar point counts toward the smallest footprint containing it. Footprints more than 10% covered by others keep their mapped height (`apply_lidar` in `tiles.py`). The overlap rule exists because of outlines drawn around tower parts (Willis Tower).
+- Elevations: local z = NAVD88 − `ground_datum` (181 m), so street level at State & Madison is about 0. Water is flat at `water_level` (176.5 m). The ground model includes bridge-deck points only on mapped road and path bridges, because the class also covers L tracks and viaducts.
+- Multi-level streets (Wacker, Columbus, Illinois Center) show up as smooth plateaus in the terrain, not decks. Real decks would need to be modeled as structures.
+- Memory: each lidar worker holds about 2–3 GB. Keep `lidar.workers` at 8 or below on a 32 GB machine, and don't run a second pipeline job while the citywide lidar step is running.
+- roofer is GPL-3.0 and runs as a subprocess from the release binary (Debian trixie image; it needs glibc 2.38+). It rejects custom coordinate systems, so don't pass `--srs`. It reads the CRS from the footprints GeoPackage, and the points are in the same local meters.
 
 ## Gotchas
 

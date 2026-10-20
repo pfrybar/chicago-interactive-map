@@ -40,8 +40,28 @@ rule buildings:
     output: "data/work/area-{area}/buildings.parquet"
     shell: PY + " buildings --area {wildcards.area}"
 
+rule lidar:
+    # Per-block outputs are cached in data/work/lidar/; blocks that already exist are skipped.
+    input:
+        expand("data/work/area-{area}/buildings.parquet", area=AREAS),
+        code("lidar", "tiles", "grid"),
+    output: touch(f"data/work/lidar/{BUILD}.done")
+    params: areas=",".join(map(str, AREAS))
+    threads: workflow.cores
+    shell: PY + " lidar --areas {params.areas}"
+
+rule roofs:
+    # Per-block roofer outputs are cached in data/work/roofs/; existing blocks are skipped.
+    input: rules.lidar.output, code("roofs", "lidar", "tiles")
+    output: touch(f"data/work/roofs/{BUILD}.done")
+    params: areas=",".join(map(str, AREAS))
+    threads: workflow.cores
+    shell: PY + " roofs --areas {params.areas}"
+
 rule tiles:
     input:
+        rules.lidar.output,
+        rules.roofs.output,
         expand("data/work/area-{area}/buildings.parquet", area=AREAS),
         rules.osm_features.output,
         code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap"),

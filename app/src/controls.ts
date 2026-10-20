@@ -24,10 +24,13 @@ export class Controls {
   private ray = new Raycaster()
   onModeChange: (m: Mode) => void = () => {}
 
+  private down = new Raycaster()
+
   constructor(
     private camera: PerspectiveCamera,
     private dom: HTMLElement,
     private colliders: () => Iterable<Mesh>,
+    private ground: () => Iterable<Mesh>,
   ) {
     const map = new MapControls(camera, dom)
     map.enableDamping = true
@@ -39,6 +42,7 @@ export class Controls {
     map.zoomToCursor = true
     this.map = map
     this.ray.firstHitOnly = true
+    this.down.firstHitOnly = true
 
     addEventListener('keydown', (e) => {
       if (e.target instanceof HTMLInputElement) return
@@ -80,7 +84,8 @@ export class Controls {
         // Drop in at the spot the map was looking at, facing the same way.
         const t = this.map.target
         const dir = t.clone().sub(this.camera.position).setY(0).normalize()
-        this.camera.position.set(t.x - dir.x * 12, EYE, t.z - dir.z * 12)
+        const gx = t.x - dir.x * 12, gz = t.z - dir.z * 12
+        this.camera.position.set(gx, (this.groundAt(gx, gz) ?? 0) + EYE, gz)
         this.yaw = Math.atan2(-dir.x, -dir.z)
         this.pitch = MathUtils.degToRad(8)
         this.applyLook()
@@ -117,8 +122,16 @@ export class Controls {
       this.map.target.copy(point).setY(0)
       this.camera.position.copy(this.map.target).add(offset)
     } else {
-      this.camera.position.set(point.x, EYE, point.z)
+      this.camera.position.set(point.x, (this.groundAt(point.x, point.z) ?? 0) + EYE, point.z)
     }
+  }
+
+  /** Height of the loaded ground under (x, z), or null where none is loaded. */
+  groundAt(x: number, z: number): number | null {
+    this.down.set(new Vector3(x, 400, z), new Vector3(0, -1, 0))
+    this.down.far = 800
+    const hit = this.down.intersectObjects([...this.ground()], false)[0]
+    return hit ? hit.point.y : null
   }
 
   update(dt: number): void {
@@ -135,6 +148,7 @@ export class Controls {
     if (k.has('ArrowLeft')) this.yaw += 1.6 * dt
     if (k.has('ArrowRight')) this.yaw -= 1.6 * dt
     this.applyLook()
+    this.followGround(dt)
     const len = Math.hypot(fwd, side)
     if (len < 0.01) return
     const speed = (k.has('ShiftLeft') || k.has('ShiftRight') ? RUN_SPEED : WALK_SPEED) * Math.min(len, 1)
@@ -150,7 +164,7 @@ export class Controls {
     for (let i = 0; i < 2 && move.lengthSq() > 1e-8; i++) {
       const dist = move.length()
       const dir = move.clone().divideScalar(dist)
-      this.ray.set(this.camera.position.clone().setY(1.0), dir)
+      this.ray.set(this.camera.position.clone().setY(this.camera.position.y - EYE + 1.0), dir)
       this.ray.far = dist + RADIUS
       const hit = this.ray.intersectObjects(meshes, false)[0]
       if (!hit || !hit.face) break
@@ -160,7 +174,15 @@ export class Controls {
       move.sub(n.multiplyScalar(blocked.dot(n)))
     }
     this.camera.position.add(move)
-    this.camera.position.y = EYE
+  }
+
+  /** Keep eye height above the ground: ease up and down slopes, stairs and bridges. */
+  private followGround(dt: number): void {
+    const g = this.groundAt(this.camera.position.x, this.camera.position.z)
+    if (g === null) return
+    const want = g + EYE
+    const y = this.camera.position.y
+    this.camera.position.y = Math.abs(want - y) > 6 ? want : y + (want - y) * Math.min(1, dt * 10)
   }
 
   private look(dx: number, dy: number): void {

@@ -10,6 +10,7 @@ A 3D map of Chicago you can walk through in a browser, built only from open data
 |---|---|
 | ![Wrigley Field and Lake View](docs/images/wrigley-field.png) | ![Hyde Park and Jackson Park](docs/images/hyde-park.png) |
 | ![Bungalow roofs in Portage Park](docs/images/bungalow-belt.png) | ![Marina City from the Riverwalk](docs/images/riverwalk.png) |
+| ![Under the Loop 'L' at Wells and Lake](docs/images/wells-and-lake.png) | ![The Loop 'L' over Wabash](docs/images/loop-l.png) |
 | ![18th Street in Pilsen, street level](docs/images/pilsen-18th-street.png) | ![The whole city from over the lake](docs/images/city-overview.png) |
 
 ## Quick start

@@ -1,22 +1,15 @@
-"""Ground layers (streets, paths, water, parks, land) around one community area.
+"""Ground layers: streets, paths, water, sand, parks and plain land.
 
-Layers never overlap: each one has everything above it in LAYER_ORDER cut out,
+Layers never overlap: each has everything above it in LAYER_ORDER cut out,
 so the whole ground can sit at height 0 with no z-fighting.
 """
-import math
-
-import geopandas as gpd
-import numpy as np
 import shapely
-from shapely.geometry import MultiPolygon, Polygon, box
+from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import polygonize, unary_union
 
-from .areas import area_polygon_local
-from .config import area_dir, load_config
-from .frame import local_frame
-from .osm import load_features
+import numpy as np
 
-# Top of the stack first.
+# Top of the stack first. "land" is whatever is left.
 LAYER_ORDER = ["path", "road", "water", "sand", "green", "land"]
 
 ROAD_WIDTH = {
@@ -25,6 +18,7 @@ ROAD_WIDTH = {
     "motorway_link": 7, "trunk_link": 7, "primary_link": 7, "secondary_link": 6, "tertiary_link": 6,
     "busway": 7,
 }
+MAJOR_ROADS = {"motorway", "trunk", "primary", "secondary", "motorway_link", "trunk_link"}
 PATH_WIDTH = {"footway": 2.5, "pedestrian": 5, "path": 2, "cycleway": 2, "steps": 2, "corridor": 2}
 GREEN = {
     "leisure": {"park", "garden", "pitch", "playground", "nature_reserve", "golf_course", "dog_park",
@@ -33,17 +27,10 @@ GREEN = {
     "natural": {"wood", "scrub", "grassland", "heath", "wetland"},
 }
 
-
-def tile_extent(area: int) -> Polygon:
-    """Square region covering the area's tiles plus a margin of tiles."""
-    cfg = load_config()
-    size, margin = cfg["tile_size"], cfg["ground_margin_tiles"]
-    minx, miny, maxx, maxy = area_polygon_local(area).bounds
-    x0 = (math.floor(minx / size) - margin) * size
-    y0 = (math.floor(miny / size) - margin) * size
-    x1 = (math.floor(maxx / size) + 1 + margin) * size
-    y1 = (math.floor(maxy / size) + 1 + margin) * size
-    return box(x0, y0, x1, y1)
+# What each tile level draws. Level 0 is full detail; higher levels are seen from farther away.
+LEVEL_LAYERS = {0: ["path", "road", "water", "sand", "green"], 1: ["road_major", "water", "sand", "green"],
+                2: ["road_major", "water", "green"]}
+UPPER_LAYERS = ["water", "green"]
 
 
 def _width(row, table) -> float:
@@ -81,15 +68,20 @@ def _buffer_lines(gdf, table) -> shapely.Geometry:
     return unary_union(parts) if parts else Polygon()
 
 
-def _union_polys(gdf) -> shapely.Geometry:
-    polys = gdf[gdf.geometry.geom_type.isin(("Polygon", "MultiPolygon"))].geometry.make_valid()
-    return unary_union(list(polys)) if len(polys) else Polygon()
+def _union_polys(gdf, extent) -> shapely.Geometry:
+    polys = gdf[gdf.geometry.geom_type.isin(("Polygon", "MultiPolygon"))].geometry
+    if not len(polys):
+        return Polygon()
+    clipped = [shapely.make_valid(shapely.clip_by_rect(shapely.make_valid(g), *extent.bounds)) for g in polys]
+    return unary_union(clipped)
 
 
 def lake_from_coastline(coast_lines, extent: Polygon) -> shapely.Geometry:
     """Water side of the OSM coastline inside `extent`.
 
-    OSM coastlines run with land on the left and water on the right.
+    OSM coastlines run with land on the left and water on the right. (Around
+    Chicago, Lake Michigan is also mapped as a water polygon, which is what
+    usually supplies it; this covers areas where only the coastline exists.)
     """
     lines = [g for g in coast_lines if g.intersects(extent)]
     if not lines:
@@ -118,58 +110,58 @@ def lake_from_coastline(coast_lines, extent: Polygon) -> shapely.Geometry:
     return unary_union(water) if water else Polygon()
 
 
-def build(area: int) -> gpd.GeoDataFrame:
-    extent = tile_extent(area)
-    feats = load_features(extent.buffer(100).bounds)
-    feats = feats[feats.intersects(extent)]
+def raw_layers(feats, extent: Polygon) -> dict[str, shapely.Geometry]:
+    """Every ground layer inside `extent`, before overlaps are removed."""
     hw = feats["highway"]
-
-    roads = _buffer_lines(feats[hw.isin(ROAD_WIDTH.keys()) & (feats.geometry.geom_type == "LineString")],
-                          ROAD_WIDTH)
-    paths = _buffer_lines(feats[hw.isin(PATH_WIDTH.keys()) & (feats.geometry.geom_type == "LineString")],
-                          PATH_WIDTH)
-    plazas = _union_polys(feats[(hw == "pedestrian") | feats["area:highway"].notna()])
-
-    water = unary_union([
-        _union_polys(feats[(feats["natural"] == "water") | (feats["waterway"] == "riverbank")
-                           | feats["landuse"].isin(["reservoir", "basin"])]),
-        lake_from_coastline(feats[feats["natural"] == "coastline"].geometry, extent),
-    ])
-    sand = _union_polys(feats[feats["natural"].isin(["beach", "sand"])])
-    green = _union_polys(feats[
-        feats["leisure"].isin(GREEN["leisure"]) | feats["landuse"].isin(GREEN["landuse"])
-        | feats["natural"].isin(GREEN["natural"])
-    ])
-
-    raw = {
-        "path": unary_union([paths, plazas]),
-        "road": roads,
-        "water": water,
-        "sand": sand,
-        "green": green,
-        "land": extent,
+    lines = feats.geometry.geom_type == "LineString"
+    roads = feats[hw.isin(ROAD_WIDTH.keys()) & lines]
+    return {
+        "road": _buffer_lines(roads, ROAD_WIDTH),
+        "road_major": _buffer_lines(roads[roads["highway"].isin(MAJOR_ROADS)], ROAD_WIDTH),
+        "path": unary_union([
+            _buffer_lines(feats[hw.isin(PATH_WIDTH.keys()) & lines], PATH_WIDTH),
+            _union_polys(feats[(hw == "pedestrian") | feats["area:highway"].notna()], extent),
+        ]),
+        "water": unary_union([
+            _union_polys(feats[(feats["natural"] == "water") | (feats["waterway"] == "riverbank")
+                               | feats["landuse"].isin(["reservoir", "basin"])], extent),
+            lake_from_coastline(feats[feats["natural"] == "coastline"].geometry, extent),
+        ]),
+        "sand": _union_polys(feats[feats["natural"].isin(["beach", "sand"])], extent),
+        "green": _union_polys(feats[
+            feats["leisure"].isin(GREEN["leisure"]) | feats["landuse"].isin(GREEN["landuse"])
+            | feats["natural"].isin(GREEN["natural"])
+        ], extent),
     }
-    rows, above = [], Polygon()
-    for layer in LAYER_ORDER:
-        geom = raw[layer].intersection(extent).difference(above).buffer(0)
-        above = unary_union([above, geom])
-        geom = _clean(geom)
-        if not geom.is_empty:
-            rows.append({"layer": layer, "geometry": geom})
 
-    out = gpd.GeoDataFrame(rows, geometry="geometry", crs=local_frame().crs)
-    dest = area_dir(area) / "ground.parquet"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    out.to_parquet(dest)
-    print(f"  area {area}: ground layers {', '.join(out['layer'])} over "
-          f"{extent.area / 1e6:.1f} km²")
+
+def stack(raw: dict, extent: Polygon, layers: list[str], simplify: float = 0.0) -> dict[str, MultiPolygon]:
+    """Clip `layers` (top first) to `extent`, cut out what lies above, and fill the rest with land."""
+    out, above = {}, Polygon()
+    for layer in layers:
+        g = raw.get(layer)
+        if g is None or g.is_empty:
+            continue
+        g = shapely.make_valid(shapely.clip_by_rect(g, *extent.bounds))
+        if simplify:
+            g = shapely.make_valid(g.simplify(simplify))
+        g = g.difference(above)
+        above = unary_union([above, g])
+        g = _clean(g)
+        if not g.is_empty:
+            out["road" if layer == "road_major" else layer] = g
+    land = _clean(extent.difference(above))
+    if not land.is_empty:
+        out["land"] = land
     return out
 
 
 def _clean(geom) -> MultiPolygon:
     """Keep polygon pieces only and drop slivers."""
-    polys = [g for g in getattr(geom, "geoms", [geom]) if isinstance(g, Polygon) and g.area > 0.5]
-    for g in getattr(geom, "geoms", []):
-        if isinstance(g, MultiPolygon):
+    polys = []
+    for g in getattr(geom, "geoms", [geom]):
+        if isinstance(g, Polygon) and g.area > 0.5:
+            polys.append(g)
+        elif isinstance(g, MultiPolygon):
             polys.extend(p for p in g.geoms if p.area > 0.5)
     return MultiPolygon(polys) if polys else MultiPolygon()

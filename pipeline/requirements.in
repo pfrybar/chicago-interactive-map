@@ -9,3 +9,4 @@ requests
 pyyaml
 snakemake
 pytest
+pillow<13  # 13.0 is too new to adopt yet (2026-10)

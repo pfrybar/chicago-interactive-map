@@ -3,6 +3,7 @@ import json
 import subprocess
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 from shapely.geometry import shape
 
@@ -62,7 +63,11 @@ def build_features() -> None:
             geoms.append(shape(feat["geometry"]))
     gdf = gpd.GeoDataFrame(pd.DataFrame(records), geometry=geoms, crs="EPSG:4326")
     gdf = gdf.to_crs(local_frame().crs)
-    gdf.to_parquet(FEATURES, write_covering_bbox=True)
+    # Sort by 1 km cell and use small row groups, so reading one area's bounding
+    # box only touches the row groups nearby (via the bbox covering column).
+    c = gdf.geometry.representative_point()
+    gdf = gdf.iloc[np.lexsort(((c.y // 1000).values, (c.x // 1000).values))]
+    gdf.to_parquet(FEATURES, write_covering_bbox=True, row_group_size=20_000)
     seq.unlink()
     print(f"  {len(gdf):,} OSM features → {FEATURES.relative_to(WORK.parent.parent)}")
 

@@ -3,7 +3,7 @@ import viewpointFile from '../../eval/viewpoints.json'
 import { City, frameMatrix, loadBuild, type Feature } from './city'
 import { Controls, type Mode } from './controls'
 import { headingOf, toLocal, toWorld } from './frame'
-import { Minimap } from './minimap'
+import { Minimap, areaAt } from './minimap'
 import { createStage, type Stage } from './scene'
 
 interface Viewpoint { name: string; mode: Mode; position: number[]; target: number[]; note?: string }
@@ -49,8 +49,9 @@ async function start() {
   ;(window as any).__cimDebug = { stage, city, controls }
 
   // Panel text
-  const areas = build.report.areas.map((a) => `${a.name} (${a.number})`).join(', ')
-  $('build-info').textContent = `${areas} · ${build.report.buildings.toLocaleString()} buildings`
+  const areaCount = build.report.areas.length
+  const areaText = areaCount === 1 ? build.report.areas[0].name : `${areaCount} community areas`
+  $('build-info').textContent = `${areaText} · ${build.report.buildings.toLocaleString()} buildings`
   $('attribution').innerHTML = build.attribution
     .map((a) => `<a href="${a.url}" target="_blank" rel="noopener">${a.text}</a>`).join(' · ')
 
@@ -79,9 +80,20 @@ async function start() {
   controls.setView(vp.mode, toWorld(vp.position), toWorld(vp.target))
   controls.onModeChange(controls.mode)
 
-  // Minimap
-  const minimap = new Minimap(build.overview, $('minimap-host'))
+  // Minimap and community areas
+  const minimap = new Minimap(build.overview, build.base, $('minimap-host'))
   minimap.onPick = (x, y) => controls.jumpTo(toWorld([x, y, 0]))
+  const select = $<HTMLSelectElement>('area-select')
+  for (const a of [...build.overview.areas].sort((p, q) => p.name.localeCompare(q.name))) {
+    select.add(new Option(`${a.name} (${a.number})`, String(a.number)))
+  }
+  select.addEventListener('change', () => {
+    const a = build.overview.areas.find((x) => String(x.number) === select.value)
+    if (a) controls.jumpTo(toWorld([a.center[0], a.center[1], 0]))
+    select.value = ''
+    select.blur() // so W A S D go to walking, not the list
+  })
+  let currentArea: ReturnType<typeof areaAt> = null
 
   // Picking
   const highlightMat = new MeshBasicMaterial({ color: 0x41b6e6, transparent: true, opacity: 0.55, depthWrite: false })
@@ -140,7 +152,14 @@ async function start() {
 
     const p = toLocal(camera.position)
     camera.getWorldDirection(fwd)
-    minimap.draw(p[0], p[1], headingOf(fwd))
+    const fl = toLocal(focus)
+    const area = areaAt(build.overview.areas, fl[0], fl[1])
+    if (area !== currentArea) {
+      currentArea = area
+      $('where').innerHTML = area ? `${escapeHtml(area.name)}<small>area ${area.number}</small>` : ''
+    }
+    const span = controls.mode === 'walk' ? 700 : Math.min(Math.max(p[2] * 4, 1200), 16000)
+    minimap.draw(p[0], p[1], headingOf(fwd), span, area)
 
     const progress = city.tiles.loadProgress
     $('loading').hidden = progress >= 1

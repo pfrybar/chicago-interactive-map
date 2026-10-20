@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Common tasks. Everything runs in Docker; the host needs only bash and Docker.
-#   ./dev build [AREAS] [BUILD]   build tiles for community areas (default: 32 = Loop, build "dev")
+#   ./dev build [AREAS] [BUILD]   build tiles for community areas: 32, 32,8 or all (default 32, build "dev")
 #   ./dev app                     run the viewer at http://localhost:5173
 #   ./dev eval [VIEWS]            screenshot viewpoints into eval/out/ (starts the viewer if needed)
 #   ./dev share                   public URL for the current build (Cloudflare quick tunnel); ./dev unshare stops it
@@ -21,7 +21,8 @@ case "$cmd" in
   build)
     areas="${1:-32}"; build="${2:-dev}"
     docker compose build -q pipeline
-    pipeline snakemake -s pipeline/Snakefile -d . --cores "${CORES:-4}" --config areas="$areas" build="$build"
+    pipeline snakemake -s pipeline/Snakefile -d . --cores "${CORES:-$(nproc)}" --resources http=4 \
+      --config areas="$areas" build="$build"
     ;;
   app)
     docker compose up web

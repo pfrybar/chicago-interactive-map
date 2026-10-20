@@ -20,13 +20,14 @@ export interface Feature {
   osm?: string
 }
 
+export interface Area { number: number; name: string; center: [number, number]; rings: number[][][] }
+
 export interface Overview {
   bounds: [number, number, number, number]
-  areas: { number: number; name: string; rings: number[][][] }[]
-  water: number[][][]
-  green: number[][][]
-  roads: number[][][]
-  buildings: number[][][]
+  image: string
+  metersPerPixel: number
+  size: [number, number]
+  areas: Area[]
 }
 
 export interface Attribution { text: string; license: string; url: string }
@@ -71,9 +72,11 @@ export class City {
   constructor(build: BuildInfo, camera: PerspectiveCamera, renderer: WebGLRenderer, frameMatrix: Matrix4) {
     const tiles = new TilesRenderer(build.base + 'tileset.json')
     this.tiles = tiles
-    tiles.errorTarget = 6
-    tiles.lruCache.minSize = 400
-    tiles.lruCache.maxSize = 600
+    // Screen-space error in pixels before a tile is swapped for its detailed children.
+    // With 10 m error on 1 km tiles, full detail loads within roughly 1.3 km of the camera.
+    tiles.errorTarget = matchMedia('(pointer: coarse)').matches ? 10 : 6
+    tiles.lruCache.minSize = 300
+    tiles.lruCache.maxSize = 500
     tiles.setCamera(camera)
     tiles.setResolutionFromRenderer(camera, renderer)
 

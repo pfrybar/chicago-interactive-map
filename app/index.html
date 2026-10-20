@@ -17,12 +17,16 @@
     <h1>Chicago Interactive Map</h1>
     <p class="sub" id="build-info">Loading…</p>
   </header>
+  <p class="where" id="where" aria-live="polite"></p>
   <div class="seg" role="group" aria-label="How to move">
     <button type="button" id="mode-map" aria-pressed="true">Map</button>
     <button type="button" id="mode-walk" aria-pressed="false">Walk</button>
   </div>
   <p class="help" id="help"></p>
   <label class="toggle"><input type="checkbox" id="shadows" checked> Sun shadows</label>
+  <label class="jump" for="area-select">Go to
+    <select id="area-select"><option value="">a community area…</option></select>
+  </label>
 </div>
 
 <section class="card" id="card" hidden aria-live="polite">

@@ -1,95 +1,70 @@
-import type { Overview } from './city'
+import type { Area, Overview } from './city'
 
 const SIZE = 168 // CSS pixels
 
-/** North-up 2D map of the build, with the camera's position and view direction. */
+/** North-up map centered on the camera, drawn from the build's minimap image. */
 export class Minimap {
   readonly canvas: HTMLCanvasElement
-  private base: HTMLCanvasElement
-  private scale: number
-  private ox: number
-  private oy: number
+  private img = new Image()
   private dpr = Math.min(window.devicePixelRatio, 2)
+  private span = 2000 // meters across the minimap
+  private cx = 0
+  private cy = 0
   onPick: (x: number, y: number) => void = () => {}
 
-  constructor(private ov: Overview, host: HTMLElement) {
-    const [x0, y0, x1, y1] = ov.bounds
-    this.scale = SIZE / Math.max(x1 - x0, y1 - y0)
-    this.ox = x0 + (x1 - x0) / 2
-    this.oy = y0 + (y1 - y0) / 2
-
+  constructor(private ov: Overview, base: string, host: HTMLElement) {
+    this.img.src = base + ov.image
     this.canvas = document.createElement('canvas')
     this.canvas.className = 'minimap'
     this.canvas.width = this.canvas.height = SIZE * this.dpr
     this.canvas.setAttribute('role', 'img')
     this.canvas.setAttribute('aria-label', 'Overview map. Click to jump there.')
     host.appendChild(this.canvas)
-
-    this.base = document.createElement('canvas')
-    this.base.width = this.base.height = SIZE * this.dpr
-    this.drawBase()
-
     this.canvas.addEventListener('click', (e) => {
       const r = this.canvas.getBoundingClientRect()
-      const px = ((e.clientX - r.left) / r.width) * SIZE
-      const py = ((e.clientY - r.top) / r.height) * SIZE
-      this.onPick(this.ox + (px - SIZE / 2) / this.scale, this.oy - (py - SIZE / 2) / this.scale)
+      const fx = (e.clientX - r.left) / r.width - 0.5
+      const fy = (e.clientY - r.top) / r.height - 0.5
+      this.onPick(this.cx + fx * this.span, this.cy - fy * this.span)
     })
   }
 
-  private px(x: number, y: number): [number, number] {
-    return [(SIZE / 2 + (x - this.ox) * this.scale) * this.dpr, (SIZE / 2 - (y - this.oy) * this.scale) * this.dpr]
-  }
-
-  private fill(ctx: CanvasRenderingContext2D, rings: number[][][], color: string): void {
-    ctx.fillStyle = color
-    ctx.beginPath()
-    for (const ring of rings) {
-      ring.forEach(([x, y], i) => {
-        const [a, b] = this.px(x, y)
-        if (i === 0) ctx.moveTo(a, b)
-        else ctx.lineTo(a, b)
-      })
-      ctx.closePath()
+  /** x, y in local meters; heading in degrees clockwise from north; span = meters across. */
+  draw(x: number, y: number, heading: number, span: number, current: Area | null): void {
+    this.cx = x; this.cy = y; this.span = span
+    const ctx = this.canvas.getContext('2d')!
+    const W = this.canvas.width
+    const [x0, , , y1] = this.ov.bounds
+    const mpp = this.ov.metersPerPixel
+    ctx.fillStyle = '#cdc9c1'
+    ctx.fillRect(0, 0, W, W)
+    if (this.img.complete && this.img.naturalWidth) {
+      ctx.imageSmoothingEnabled = true
+      ctx.drawImage(this.img, (x - span / 2 - x0) / mpp, (y1 - (y + span / 2)) / mpp, span / mpp, span / mpp, 0, 0, W, W)
     }
-    ctx.fill('evenodd')
-  }
+    const toPx = (px: number, py: number): [number, number] =>
+      [((px - x) / span + 0.5) * W, ((y - py) / span + 0.5) * W]
 
-  private drawBase(): void {
-    const ctx = this.base.getContext('2d')!
-    ctx.fillStyle = '#d9d6cf'
-    ctx.fillRect(0, 0, this.base.width, this.base.height)
-    this.fill(ctx, this.ov.green, '#a9bf96')
-    this.fill(ctx, this.ov.water, '#7fa7bd')
-    this.fill(ctx, this.ov.roads, '#f4f2ee')
-    this.fill(ctx, this.ov.buildings, '#8c8679')
-    ctx.strokeStyle = '#1a7fae'
-    ctx.lineWidth = 1.5 * this.dpr
-    ctx.setLineDash([4 * this.dpr, 3 * this.dpr])
-    for (const area of this.ov.areas) {
+    if (current) {
+      ctx.strokeStyle = '#1a7fae'
+      ctx.lineWidth = 1.5 * this.dpr
+      ctx.setLineDash([4 * this.dpr, 3 * this.dpr])
       ctx.beginPath()
-      for (const ring of area.rings) {
-        ring.forEach(([x, y], i) => {
-          const [a, b] = this.px(x, y)
+      for (const ring of current.rings) {
+        ring.forEach(([rx, ry], i) => {
+          const [a, b] = toPx(rx, ry)
           if (i === 0) ctx.moveTo(a, b)
           else ctx.lineTo(a, b)
         })
         ctx.closePath()
       }
       ctx.stroke()
+      ctx.setLineDash([])
     }
-  }
 
-  /** x, y in local meters; heading in degrees clockwise from north. */
-  draw(x: number, y: number, heading: number): void {
-    const ctx = this.canvas.getContext('2d')!
-    ctx.drawImage(this.base, 0, 0)
-    const [a, b] = this.px(x, y)
-    const h = (heading * Math.PI) / 180
     const d = this.dpr
     ctx.save()
-    ctx.translate(a, b)
-    ctx.rotate(h)
+    ctx.translate(W / 2, W / 2)
+    ctx.rotate((heading * Math.PI) / 180)
     ctx.fillStyle = 'rgba(26, 127, 174, 0.28)'
     ctx.beginPath()
     ctx.moveTo(0, 0)
@@ -105,4 +80,19 @@ export class Minimap {
     ctx.stroke()
     ctx.restore()
   }
+}
+
+/** The community area containing (x, y), if any. */
+export function areaAt(areas: Area[], x: number, y: number): Area | null {
+  for (const a of areas) {
+    let inside = false
+    for (const ring of a.rings) {
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i], [xj, yj] = ring[j]
+        if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside
+      }
+    }
+    if (inside) return a
+  }
+  return null
 }

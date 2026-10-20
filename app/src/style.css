@@ -56,6 +56,14 @@ body { font: 14px/1.45 var(--body); color: var(--ink); }
 }
 .sub { margin: 4px 0 0; font: 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .help { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+.where { margin: 0; font: 700 18px/1.1 var(--display); letter-spacing: 0.02em; min-height: 20px; }
+.where small { font: 12px var(--mono); color: var(--ink-2); letter-spacing: 0; margin-left: 6px; }
+.jump { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.jump select {
+  flex: 1; min-width: 0;
+  font: 13px var(--body); color: var(--ink);
+  background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 5px 6px;
+}
 .seg { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
 .seg button {
   flex: 1;
@@ -159,7 +167,8 @@ body.eval .hud, body.eval .card, body.eval .minimap-host, body.eval .loading, bo
 @media (max-width: 640px) {
   .hud { width: calc(100% - 2 * var(--gap) - 120px); padding: 10px 12px; gap: 8px; }
   .hud h1 { font-size: 20px; }
-  .help { display: none; }
+  .help, .jump { display: none; }
+  .where { font-size: 15px; }
   .minimap { width: 108px; height: 108px; }
   .card { left: var(--gap); right: var(--gap); width: auto; }
   body.walking .card { display: none; }

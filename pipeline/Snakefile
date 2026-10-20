@@ -1,6 +1,7 @@
 # Build workflow. Run from the repo root (the Makefile does this for you):
 #   snakemake -s pipeline/Snakefile -d . --cores 4 --config areas=32 build=dev
-AREAS = [int(a) for a in str(config.get("areas", "32")).split(",")]
+_areas = str(config.get("areas", "32"))
+AREAS = list(range(1, 78)) if _areas == "all" else [int(a) for a in _areas.split(",")]
 BUILD = config.get("build", "dev")
 PY = "python -m cim"
 
@@ -22,6 +23,7 @@ rule fetch_areas:
 rule fetch_city_footprints:
     input: rules.fetch_areas.output
     output: "data/raw/city_footprints/area-{area}.geojson"
+    resources: http=1
     shell: PY + " fetch city_footprints --area {wildcards.area}"
 
 rule osm_features:
@@ -38,16 +40,12 @@ rule buildings:
     output: "data/work/area-{area}/buildings.parquet"
     shell: PY + " buildings --area {wildcards.area}"
 
-rule ground:
-    input: rules.osm_features.output, rules.fetch_areas.output, code("ground", "areas")
-    output: "data/work/area-{area}/ground.parquet"
-    shell: PY + " ground --area {wildcards.area}"
-
 rule tiles:
     input:
         expand("data/work/area-{area}/buildings.parquet", area=AREAS),
-        expand("data/work/area-{area}/ground.parquet", area=AREAS),
-        code("tiles", "mesh", "gltf", "frame"),
+        rules.osm_features.output,
+        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap"),
     output: f"data/builds/{BUILD}/tileset.json"
     params: areas=",".join(map(str, AREAS))
-    shell: f"{PY} tiles --areas {{params.areas}} --build {BUILD} && {PY} agent-state"
+    threads: workflow.cores
+    shell: f"CIM_WORKERS={{threads}} {PY} tiles --areas {{params.areas}} --build {BUILD} && {PY} agent-state"

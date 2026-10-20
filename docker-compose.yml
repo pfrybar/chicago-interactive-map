@@ -6,7 +6,7 @@ services:
     build: { context: ., dockerfile: docker/pipeline.Dockerfile }
     image: cim-pipeline:dev
     user: "${UID:-1000}:${GID:-1000}"
-    environment: { HOME: /tmp }
+    environment: { HOME: /tmp, USER: cim }  # snakemake needs a user name; the host UID has none in the image
     volumes: [".:/repo"]
     working_dir: /repo
 

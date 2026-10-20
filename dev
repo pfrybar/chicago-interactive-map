@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Common tasks. Everything runs in Docker; the host needs only bash and Docker.
+#   ./dev build [AREAS] [BUILD]   build tiles for community areas (default: 32 = Loop, build "dev")
+#   ./dev app                     run the viewer at http://localhost:5173
+#   ./dev eval [VIEWS]            screenshot viewpoints into eval/out/ (starts the viewer if needed)
+#   ./dev test                    pipeline tests + TypeScript check
+#   ./dev areas                   list the 77 community areas
+#   ./dev shell                   shell in the pipeline container
+#   ./dev clean                   delete intermediate files and builds (keeps downloads)
+set -euo pipefail
+cd "$(dirname "$0")"
+export UID 2>/dev/null || true  # bash sets UID (read-only); docker compose needs it exported
+export GID="${GID:-$(id -g)}"
+pipeline() { docker compose run --rm pipeline "$@"; }
+web() { docker compose run --rm --no-deps web sh -c "corepack pnpm install --frozen-lockfile --reporter=silent && $*"; }
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  build)
+    areas="${1:-32}"; build="${2:-dev}"
+    docker compose build -q pipeline
+    pipeline snakemake -s pipeline/Snakefile -d . --cores "${CORES:-4}" --config areas="$areas" build="$build"
+    ;;
+  app)
+    docker compose up web
+    ;;
+  eval)
+    docker compose up -d web >/dev/null
+    docker compose run --rm ${1:+-e VIEWS="$1"} eval sh -c \
+      "npm ci --no-audit --no-fund --loglevel=error >/dev/null && node render.mjs"
+    ;;
+  test)
+    docker compose build -q pipeline
+    pipeline pytest -q pipeline/tests
+    web "corepack pnpm check"
+    ;;
+  areas)
+    pipeline python -m cim areas
+    ;;
+  shell)
+    pipeline bash
+    ;;
+  clean)
+    rm -rf data/work data/builds
+    ;;
+  *)
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+esac

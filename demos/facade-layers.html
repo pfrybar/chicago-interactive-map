@@ -1,0 +1,872 @@
+<title>Aon Center Facade Layers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed 3D view; a translucent spec-sheet panel floats on the left (bottom sheet on phones). */
+:root {
+  --ink: #1b2227;
+  --ink-2: #56626c;
+  --paper: #eef2f4;
+  --panel: rgba(240, 244, 246, 0.92);
+  --line: #cfd7dc;
+  --accent: #1a7fae;      /* Chicago flag blue, darkened for light backgrounds */
+  --accent-ink: #ffffff;
+  --track: #b8c3ca;
+  --display: "Big Shoulders Display", "Oswald", "Arial Narrow", sans-serif;
+  --body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ink: #e6ecef;
+    --ink-2: #9aa7b1;
+    --paper: #11161a;
+    --panel: rgba(16, 21, 25, 0.9);
+    --line: #2b353c;
+    --accent: #41b6e6;
+    --accent-ink: #0b1a22;
+    --track: #3a464e;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #e6ecef;
+  --ink-2: #9aa7b1;
+  --paper: #11161a;
+  --panel: rgba(16, 21, 25, 0.9);
+  --line: #2b353c;
+  --accent: #41b6e6;
+  --accent-ink: #0b1a22;
+  --track: #3a464e;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+#app { position: relative; height: 100%; overflow: hidden; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+.plate {
+  position: absolute;
+  top: 16px;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  text-align: right;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.plate h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.plate p { margin: 4px 0 0; font-family: var(--mono); font-size: 12px; opacity: 0.92; }
+
+#panel {
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 6px;
+}
+.panel-head h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+#sheet {
+  display: none;
+  font: 500 12px var(--body);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.scroll { overflow-y: auto; padding: 0 18px 16px; display: flex; flex-direction: column; gap: 16px; }
+.lede { margin: 0; color: var(--ink-2); max-width: 60ch; }
+
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn {
+  font: 500 12.5px var(--body);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-2); }
+.btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:focus-visible, #sheet:focus-visible, .sw:focus-visible, input[type="range"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.label {
+  margin: 0 0 6px;
+  font: 500 11px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+ol.layers { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+ol.layers li {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 2px 10px;
+  align-items: start;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.num { font: 500 12px var(--mono); color: var(--ink-2); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.layers label { font-weight: 600; cursor: pointer; }
+.layers .desc { grid-column: 2 / 3; margin: 0; font-size: 12.5px; color: var(--ink-2); }
+.sw {
+  grid-row: 1 / 3;
+  grid-column: 3;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 36px;
+  height: 20px;
+  margin: 1px 0 0;
+  border-radius: 10px;
+  background: var(--track);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sw::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+.sw:checked { background: var(--accent); }
+.sw:checked::after { transform: translateX(16px); }
+
+.time-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.readout { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 6px 0 2px; }
+.sunline { font: 400 11.5px var(--mono); color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; }
+
+.foot {
+  margin-top: auto;
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--line);
+  font: 400 11.5px var(--mono);
+  color: var(--ink-2);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+#err { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; }
+
+@media (max-width: 720px) {
+  .plate { top: 12px; }
+  .plate h2 { font-size: 28px; }
+  .plate p { font-size: 11px; }
+  #panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 48%;
+    border-radius: 10px 10px 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .panel-head { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .panel-head h1 { font-size: 24px; }
+  #sheet { display: inline-block; }
+  .scroll { padding-left: 16px; padding-right: 16px; }
+  #panel.collapsed .scroll, #panel.collapsed .foot { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sw, .sw::after { transition: none; }
+}
+</style>
+
+<div id="app">
+  <canvas id="view" aria-label="3D view of the Aon Center"></canvas>
+
+  <div class="plate">
+    <h2>Aon Center</h2>
+    <p>200 E Randolph St · 346 m · 83 floors</p>
+  </div>
+
+  <aside id="panel">
+    <div class="panel-head">
+      <h1>Facade Layers</h1>
+      <button id="sheet" type="button" aria-expanded="true" aria-controls="panel-body">Hide</button>
+    </div>
+    <div class="scroll" id="panel-body">
+      <p class="lede">The bare shape comes from lidar. Switch rendering layers on one at a time and watch what each adds. Drag to orbit, scroll or pinch to zoom.</p>
+      <p id="err" hidden></p>
+
+      <div class="btnrow" role="group" aria-label="Layer presets">
+        <button class="btn" type="button" id="all-on">All layers</button>
+        <button class="btn" type="button" id="all-off">Bare model</button>
+      </div>
+
+      <ol class="layers" id="layers"></ol>
+
+      <section>
+        <div class="time-head">
+          <p class="label">Time of day · Oct 20</p>
+          <span class="readout" id="time-read">2:30 PM</span>
+        </div>
+        <input type="range" id="hour" min="5.5" max="23.5" step="0.25" value="14.5" aria-label="Time of day">
+        <div class="sunline"><span id="sun-read">Sun 31° SW</span><span id="sun-span">Rise 7:19 · Set 6:01 PM</span></div>
+      </section>
+
+      <section>
+        <p class="label">Viewpoint</p>
+        <div class="btnrow" role="group" aria-label="Viewpoint">
+          <button class="btn" type="button" data-view="plaza" aria-pressed="true">Plaza</button>
+          <button class="btn" type="button" data-view="street" aria-pressed="false">Street level</button>
+          <button class="btn" type="button" data-view="skyline" aria-pressed="false">From the park</button>
+        </div>
+      </section>
+    </div>
+    <div class="foot"><span id="fps">— fps</span><span>Approximate model · neighbors are rough massing</span></div>
+  </aside>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+// ---- Building dimensions (approximate) ----
+const SIDE = 59;                 // 194 ft square plan
+const HALF = SIDE / 2;
+const HEIGHT = 346;              // 1,136 ft
+const FLOORS = 83;
+const FH = HEIGHT / FLOORS;      // floor-to-floor height
+const BAYS = 20;
+const SP = SIDE / BAYS;          // pier spacing
+const ROOM_DEPTH = 7.0;
+const D2R = Math.PI / 180;
+
+// ---- Layer definitions (order = build-up order) ----
+const LAYERS = [
+  ['piers', 'Real 3D piers', 'Chevron granite piers modeled as geometry. Off: painted onto a flat box.'],
+  ['pbr', 'Physical materials', 'Honed granite, concrete and water respond to light by roughness.'],
+  ['interior', 'Fake interiors', 'A shader draws an office room behind every window.'],
+  ['variation', 'Window variation', 'Random blinds, lit rooms, light tints and slightly warped panes.'],
+  ['reflect', 'Reflections', 'A reflection probe captures the sky and neighbors for the glass.'],
+  ['shadows', 'Sun shadows', 'Shadows from the real sun position over Chicago.'],
+  ['ao', 'Ambient occlusion', 'Contact darkening between piers and where things meet.'],
+  ['sky', 'Sky and haze', 'Physical sky, light from the sky and haze over distance.'],
+  ['weather', 'Weathering', 'Panel color shifts, streaks below each floor, grime at street level.'],
+  ['finish', 'Filmic finish', 'AgX tone mapping, auto-exposure for night and bloom.'],
+];
+const L = Object.fromEntries(LAYERS.map(([k]) => [k, true]));
+
+const ui = {
+  layers: document.getElementById('layers'),
+  hour: document.getElementById('hour'),
+  timeRead: document.getElementById('time-read'),
+  sunRead: document.getElementById('sun-read'),
+  sunSpan: document.getElementById('sun-span'),
+  fps: document.getElementById('fps'),
+  err: document.getElementById('err'),
+  panel: document.getElementById('panel'),
+  sheet: document.getElementById('sheet'),
+};
+
+LAYERS.forEach(([key, title, desc], i) => {
+  const li = document.createElement('li');
+  li.innerHTML = `<span class="num">${String(i + 1).padStart(2, '0')}</span>
+    <label for="l-${key}">${title}</label>
+    <input class="sw" type="checkbox" role="switch" id="l-${key}" checked>
+    <p class="desc">${desc}</p>`;
+  ui.layers.appendChild(li);
+});
+
+ui.sheet.addEventListener('click', () => {
+  const collapsed = ui.panel.classList.toggle('collapsed');
+  ui.sheet.textContent = collapsed ? 'Layers' : 'Hide';
+  ui.sheet.setAttribute('aria-expanded', String(!collapsed));
+});
+
+// ---- Renderer ----
+const canvas = document.getElementById('view');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+} catch (e) {
+  ui.err.hidden = false;
+  ui.err.textContent = 'This demo needs WebGL 2, which this browser or device has turned off. Try a current version of Chrome, Safari or Firefox.';
+  throw e;
+}
+const isMobile = matchMedia('(max-width: 720px), (pointer: coarse)').matches;
+const PR = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
+renderer.setPixelRatio(PR);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.AgXToneMapping;
+renderer.toneMappingExposure = 0.55;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, 1, 1, 6000);
+camera.position.set(-70, 6, 95);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 55, 0);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.497;
+controls.minDistance = 15;
+controls.maxDistance = 2200;
+
+// ---- Sky ----
+const sky = new Sky();
+sky.scale.setScalar(5000);
+const su = sky.material.uniforms;
+su.turbidity.value = 5;
+su.rayleigh.value = 1.4;
+su.mieCoefficient.value = 0.005;
+su.mieDirectionalG.value = 0.8;
+scene.add(sky);
+
+const envScene = new THREE.Scene();
+const envSky = new Sky();
+envSky.scale.setScalar(1000);
+envSky.material.uniforms = su;
+envScene.add(envSky);
+const pmrem = new THREE.PMREMGenerator(renderer);
+let envRT = null;
+
+// ---- Lights ----
+const sun = new THREE.DirectionalLight(0xffffff, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(isMobile ? 2048 : 4096, isMobile ? 2048 : 4096);
+const sc = sun.shadow.camera;
+sc.left = -280; sc.right = 280; sc.top = 280; sc.bottom = -280; sc.near = 10; sc.far = 1800;
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.25;
+scene.add(sun, sun.target);
+const hemi = new THREE.HemisphereLight(0xbfd3e6, 0x6b6560, 0.6);
+scene.add(hemi);
+
+// ---- Materials (each object has a physical and a flat version) ----
+function graniteTexture() {
+  const s = 256, c = document.createElement('canvas');
+  c.width = c.height = s;
+  const g = c.getContext('2d');
+  const img = g.createImageData(s, s);
+  for (let i = 0; i < s * s; i++) {
+    const r = Math.random();
+    let v = 226 + (Math.random() - 0.5) * 22;
+    if (r > 0.986) v -= 60 + 70 * Math.random();
+    else if (r > 0.94) v -= 28;
+    img.data[i * 4] = v; img.data[i * 4 + 1] = v - 2; img.data[i * 4 + 2] = v - 7; img.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1, HEIGHT / 2.4);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+const graniteTex = graniteTexture();
+
+// Weathering: panel-to-panel variation, streaks under each floor line, grime near the ground.
+const weatherU = { value: 1 };
+function addWeathering(mat) {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uWeather = weatherU;
+    sh.vertexShader = 'varying float vWY; varying float vWX; varying float vInst;\n' +
+      sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        vec4 wpW = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
+        vWY = wpW.y; vWX = wpW.x + wpW.z; vInst = float(gl_InstanceID);`);
+    sh.fragmentShader = 'uniform float uWeather; varying float vWY; varying float vWX; varying float vInst;\n' +
+      'float wh(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }\n' +
+      sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+        float panel = floor(vWY / ${(FH / 2).toFixed(4)});
+        float pv = 1.0 + (wh(vec2(panel, vInst)) - 0.5) * 0.11 * uWeather;
+        float fl = fract(vWY / ${FH.toFixed(4)});
+        float sk = wh(vec2(floor(vWX * 6.0), panel * 3.1 + vInst));
+        float streak = (1.0 - fl) * (1.0 - fl) * step(0.5, sk) * 0.24 * uWeather;
+        float grime = (1.0 - smoothstep(0.0, 16.0, vWY)) * 0.38 * uWeather;
+        diffuseColor.rgb *= pv * (1.0 - streak) * (1.0 - grime);`);
+  };
+  mat.customProgramCacheKey = () => 'weathered-' + mat.type;
+  return mat;
+}
+const pierPBR = addWeathering(new THREE.MeshStandardMaterial({
+  color: 0xffffff, map: graniteTex, bumpMap: graniteTex, bumpScale: 0.6, roughness: 0.6, metalness: 0,
+}));
+const pierFlat = addWeathering(new THREE.MeshLambertMaterial({ color: 0xc9c9c9 }));
+
+const mats = {
+  ground: [new THREE.MeshStandardMaterial({ color: 0x77777a, roughness: 0.95 }), new THREE.MeshLambertMaterial({ color: 0x8a8a8a })],
+  plaza: [new THREE.MeshStandardMaterial({ color: 0xc4beb3, roughness: 0.7 }), new THREE.MeshLambertMaterial({ color: 0xb0b0b0 })],
+  lawn: [new THREE.MeshStandardMaterial({ color: 0x4f6b37, roughness: 1 }), new THREE.MeshLambertMaterial({ color: 0x6f8a5a })],
+  water: [new THREE.MeshStandardMaterial({ color: 0x1e3d4c, roughness: 0.06, metalness: 0.1 }), new THREE.MeshLambertMaterial({ color: 0x4a6f80 })],
+  concrete: [new THREE.MeshStandardMaterial({ color: 0xbab5ab, roughness: 0.88 }), new THREE.MeshLambertMaterial({ color: 0xa8a8a8 })],
+  glass: [new THREE.MeshStandardMaterial({ color: 0x2a3640, roughness: 0.12, metalness: 0.7 }), new THREE.MeshLambertMaterial({ color: 0x59646c })],
+};
+const swappable = [];
+function mesh(geo, kind, cast = true, receive = true) {
+  const m = new THREE.Mesh(geo, mats[kind][0]);
+  m.castShadow = cast; m.receiveShadow = receive;
+  m.userData.kind = kind;
+  swappable.push(m);
+  return m;
+}
+
+// ---- Glass curtain wall shader: interior mapping, reflections, variation ----
+const glassU = {
+  uEnv: { value: null },
+  uReflect: { value: 1 }, uInterior: { value: 1 }, uVariation: { value: 1 }, uPainted: { value: 0 },
+  uNight: { value: 0 },
+  uSunDir: { value: new THREE.Vector3(0, 1, 0) },
+  uSunColor: { value: new THREE.Color(1, 1, 1) },
+  uAmbient: { value: new THREE.Color(0.3, 0.33, 0.38) },
+  uGranite: { value: new THREE.Color(0.78, 0.77, 0.74) },
+  ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
+};
+const glassMat = new THREE.ShaderMaterial({
+  uniforms: glassU,
+  fog: true,
+  vertexShader: /* glsl */`
+    varying vec3 vWorldPos;
+    varying vec3 vNormalW;
+    #include <fog_pars_vertex>
+    void main() {
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+      vWorldPos = wp.xyz;
+      vNormalW = normalize(mat3(modelMatrix) * normal);
+      vec4 mvPosition = viewMatrix * wp;
+      gl_Position = projectionMatrix * mvPosition;
+      #include <fog_vertex>
+    }`,
+  fragmentShader: /* glsl */`
+    uniform samplerCube uEnv;
+    uniform float uReflect, uInterior, uVariation, uPainted, uNight;
+    uniform vec3 uSunDir, uSunColor, uAmbient, uGranite;
+    varying vec3 vWorldPos;
+    varying vec3 vNormalW;
+    #include <common>
+    #include <fog_pars_fragment>
+    const float SP = ${SP.toFixed(4)};
+    const float FH = ${FH.toFixed(4)};
+    const float HALF = ${HALF.toFixed(4)};
+    const float DEPTH = ${ROOM_DEPTH.toFixed(2)};
+    float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+    void main() {
+      vec3 n = normalize(vNormalW);
+      vec3 V = normalize(vWorldPos - cameraPosition);
+      float sunN = max(dot(n, uSunDir), 0.0);
+      vec3 col;
+
+      if (abs(n.y) > 0.5) {
+        col = vec3(0.16) * (uAmbient + sunN * uSunColor);
+      } else {
+        vec3 up = vec3(0.0, 1.0, 0.0);
+        vec3 t = normalize(cross(up, n));
+        vec2 g = vec2((dot(vWorldPos, t) + HALF) / SP, vWorldPos.y / FH);
+        vec2 cell = floor(g);
+        vec2 f = fract(g);
+        float face = floor(n.x * 2.0 + n.z * 4.0 + 8.0);
+        vec2 cid = cell + vec2(face * 101.0, 7.0);
+        float r1 = h21(cid), r2 = h21(cid + 17.3), r3 = h21(cid + 41.9), r4 = h21(cid + 73.1), r5 = h21(cid + 5.7);
+        float edge = min(f.x, 1.0 - f.x) * SP;
+
+        if (uPainted > 0.5 && edge < 0.64) {
+          // Piers painted onto the flat box: same color, no depth, no shadow.
+          col = uGranite * (uAmbient + sunN * uSunColor);
+        } else {
+          bool slab = f.y < 0.15;
+          bool mullion = edge < 0.05 || abs(f.y - 0.15) * FH < 0.035;
+
+          // Pane normal: each pane tilts a fraction of a degree, with slight bowing.
+          vec3 nW = n;
+          if (uVariation > 0.5) {
+            nW = normalize(n + t * ((r4 - 0.5) * 0.035 + sin(f.x * PI) * 0.012)
+                             + up * ((r5 - 0.5) * 0.03 + (f.y - 0.5) * 0.012));
+          }
+          vec3 R = reflect(V, nW);
+          float cosT = clamp(dot(-V, nW), 0.0, 1.0);
+          float F = 0.06 + 0.94 * pow(1.0 - cosT, 5.0);
+          vec3 refl = uReflect > 0.5 ? textureCube(uEnv, R).rgb : uAmbient * 0.25;
+
+          float lit = uVariation > 0.5 ? step(r1, mix(0.6, 0.32, uNight)) : 1.0;
+          vec3 tint = uVariation > 0.5 ? mix(vec3(1.0, 0.82, 0.6), vec3(0.86, 0.95, 1.05), r3) : vec3(1.0, 0.93, 0.82);
+          float roomScale = mix(0.32, 1.0, uNight);
+          vec3 inside;
+
+          if (slab) {
+            inside = vec3(0.015);
+          } else if (uInterior > 0.5) {
+            // Interior mapping: trace the view ray into a box room behind the glass.
+            vec3 rd = vec3(dot(V, t), V.y, dot(V, -n)) + 1e-5;
+            vec3 ro = vec3(f.x * SP, f.y * FH, 0.0);
+            float tx = ((rd.x > 0.0 ? SP : 0.0) - ro.x) / rd.x;
+            float ty = ((rd.y > 0.0 ? FH : 0.0) - ro.y) / rd.y;
+            float tz = DEPTH / max(rd.z, 1e-4);
+            float tm = min(tx, min(ty, tz));
+            vec3 hp = ro + rd * tm;
+            vec3 wallC = vec3(0.6, 0.58, 0.54);
+            vec3 emit = vec3(0.0);
+            vec3 c;
+            if (tm == tz) {
+              c = wallC * 0.85;
+              if (uVariation > 0.5 && hp.y < 1.25 && fract(hp.x / 1.6 + r2) < 0.7) c = vec3(0.16, 0.15, 0.14);
+            } else if (tm == ty) {
+              if (rd.y > 0.0) {
+                vec2 cp = fract(vec2(hp.x / 1.5, hp.z / 1.2) + 0.25);
+                float panel = step(0.3, cp.x) * step(cp.x, 0.7) * step(0.35, cp.y) * step(cp.y, 0.65);
+                c = vec3(0.55);
+                emit = panel * tint * 2.4 * lit;
+              } else {
+                c = vec3(0.1, 0.11, 0.13);
+              }
+            } else {
+              c = wallC;
+              if (uVariation > 0.5 && hp.y < 1.0) c *= 0.55;
+            }
+            float roomLight = mix(0.12, 0.75, lit);
+            inside = (c * tint * roomLight + emit) * roomScale * mix(1.0, 0.45, hp.z / DEPTH);
+            inside += c * uAmbient * 0.25 * (1.0 - uNight);
+          } else {
+            inside = vec3(0.018, 0.022, 0.026) + tint * 0.5 * lit * uNight;
+          }
+
+          // Blinds sit just behind the glass, so they draw over the room.
+          if (!slab && uVariation > 0.5 && r2 > 0.3) {
+            float drop = (r2 - 0.3) * 1.1;
+            if (f.y > 1.0 - drop * 0.85) {
+              float slat = 0.75 + 0.25 * step(0.5, fract(f.y * FH * 14.0));
+              inside = vec3(0.52, 0.5, 0.46) * slat * (uAmbient * 0.6 + lit * roomScale * 0.45 * tint);
+            }
+          }
+
+          vec3 transmitted = inside * vec3(0.5, 0.58, 0.6);
+          col = transmitted * (1.0 - F) + refl * F;
+          if (mullion) col = vec3(0.06, 0.065, 0.07) * (uAmbient + sunN * uSunColor) + refl * 0.04;
+        }
+      }
+      gl_FragColor = vec4(col, 1.0);
+      #include <fog_fragment>
+    }`,
+});
+
+// ---- Tower ----
+const tower = new THREE.Group();
+scene.add(tower);
+const core = new THREE.Mesh(new THREE.BoxGeometry(SIDE, HEIGHT, SIDE), glassMat);
+core.position.y = HEIGHT / 2;
+core.castShadow = true;
+tower.add(core);
+
+const pierGeo = new THREE.BoxGeometry(0.9, HEIGHT, 0.9);
+pierGeo.rotateY(Math.PI / 4);               // half-buried square = chevron pointing out
+pierGeo.translate(0, HEIGHT / 2, 0);
+const pierPos = [];
+for (let i = 1; i < BAYS; i++) {
+  const u = -HALF + i * SP;
+  pierPos.push([u, HALF, 1], [u, -HALF, 1], [HALF, u, 1], [-HALF, u, 1]);
+}
+pierPos.push([HALF, HALF, 1.5], [-HALF, HALF, 1.5], [HALF, -HALF, 1.5], [-HALF, -HALF, 1.5]);
+const piers = new THREE.InstancedMesh(pierGeo, pierPBR, pierPos.length);
+const m4 = new THREE.Matrix4();
+pierPos.forEach(([x, z, s], i) => {
+  m4.makeScale(s, 1, s).setPosition(x, 0, z);
+  piers.setMatrixAt(i, m4);
+});
+piers.castShadow = true;
+piers.receiveShadow = true;
+tower.add(piers);
+
+// Parapet cap
+const cap = mesh(new THREE.BoxGeometry(SIDE + 1.6, 2.2, SIDE + 1.6), 'concrete');
+cap.position.y = HEIGHT + 1.1;
+tower.add(cap);
+
+// ---- Surroundings (rough massing) ----
+const ground = mesh(new THREE.PlaneGeometry(6000, 6000), 'ground', false, true);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+const plaza = mesh(new THREE.BoxGeometry(120, 0.6, 120), 'plaza', false, true);
+plaza.position.y = 0.3;
+scene.add(plaza);
+const lawn = mesh(new THREE.BoxGeometry(560, 0.4, 560), 'lawn', false, true);
+lawn.position.set(-20, 0.2, 380);
+scene.add(lawn);
+const lake = mesh(new THREE.PlaneGeometry(3000, 6000), 'water', false, true);
+lake.rotation.x = -Math.PI / 2;
+lake.position.set(560 + 1500, 0.15, 0);
+scene.add(lake);
+
+const neighbors = [
+  // [x, z, width, depth, height, kind]
+  [-150, -35, 48, 48, 278, 'glass', true],   // Two Prudential Plaza
+  [-170, 55, 70, 45, 183, 'concrete'],       // One Prudential Plaza
+  [150, 5, 60, 42, 226, 'glass'],            // Blue Cross Blue Shield Tower
+  [235, -175, 40, 30, 262, 'concrete'],      // Aqua
+  [-60, -175, 60, 40, 150, 'glass'],
+  [65, -185, 50, 50, 110, 'concrete'],
+  [-330, -120, 40, 60, 120, 'concrete'],
+  [-335, 20, 40, 50, 92, 'concrete'],
+  [-340, 150, 40, 70, 75, 'concrete'],
+];
+for (const [x, z, w, d, h, kind, spire] of neighbors) {
+  const b = mesh(new THREE.BoxGeometry(w, h, d), kind);
+  b.position.set(x, h / 2, z);
+  scene.add(b);
+  if (spire) {
+    const s = mesh(new THREE.ConeGeometry(w * 0.707, 40, 4), kind);
+    s.rotation.y = Math.PI / 4;
+    s.position.set(x, h + 20, z);
+    scene.add(s);
+  }
+}
+
+// ---- Reflection probe ----
+const cubeRT = new THREE.WebGLCubeRenderTarget(256, {
+  type: THREE.HalfFloatType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter,
+});
+const cubeCam = new THREE.CubeCamera(5, 6000, cubeRT);
+cubeCam.position.set(0, 120, 0);
+scene.add(cubeCam);
+glassU.uEnv.value = cubeRT.texture;
+
+// ---- Post-processing ----
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
+composer.addPass(new RenderPass(scene, camera));
+const gtao = new GTAOPass(scene, camera, 1, 1);
+gtao.updateGtaoMaterial({ radius: 2.2, distanceExponent: 1, thickness: 2, scale: 1, samples: isMobile ? 8 : 16, distanceFallOff: 1, screenSpaceRadius: false });
+gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: isMobile ? 8 : 16 });
+gtao.blendIntensity = 1;
+composer.addPass(gtao);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.4, 0.55, 0.9);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  composer.setPixelRatio(PR);
+  composer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas);
+resize();
+
+// ---- Sun position for Chicago on Oct 20 ----
+const LAT = 41.885 * D2R, DEC = -10.6 * D2R, NOON = 12.67;
+function sunAt(h) {
+  const H = (h - NOON) * 15 * D2R;
+  const sinE = Math.sin(LAT) * Math.sin(DEC) + Math.cos(LAT) * Math.cos(DEC) * Math.cos(H);
+  const A = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(LAT) - Math.tan(DEC) * Math.cos(LAT)) + Math.PI;
+  return { e: Math.asin(sinE), A };
+}
+const H0 = Math.acos(-Math.tan(LAT) * Math.tan(DEC)) / D2R / 15;
+const fmt = (h) => {
+  let hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+  if (mm === 60) { hh += 1; mm = 0; }
+  const ap = hh >= 12 && hh < 24 ? 'PM' : 'AM';
+  const h12 = ((hh + 11) % 12) + 1;
+  return `${h12}:${String(mm).padStart(2, '0')} ${ap}`;
+};
+ui.sunSpan.textContent = `Rise ${fmt(NOON - H0).replace(' AM', '')} · Set ${fmt(NOON + H0)}`;
+const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+
+const tmpC = new THREE.Color();
+let nightAmt = 0;
+function updateTime() {
+  const h = parseFloat(ui.hour.value);
+  const { e, A } = sunAt(h);
+  const sinE = Math.sin(e);
+  const dir = new THREE.Vector3(Math.sin(A) * Math.cos(e), sinE, -Math.cos(A) * Math.cos(e));
+  su.sunPosition.value.copy(dir);
+  sun.position.copy(dir).multiplyScalar(900);
+  glassU.uSunDir.value.copy(dir);
+
+  const day = THREE.MathUtils.smoothstep(sinE, -0.05, 0.25);
+  nightAmt = 1 - THREE.MathUtils.smoothstep(sinE, -0.12, 0.05);
+  const low = 1 - THREE.MathUtils.smoothstep(sinE, 0.0, 0.45);
+  sun.intensity = 3.0 * THREE.MathUtils.smoothstep(sinE, -0.01, 0.1);
+  sun.color.setRGB(1, 0.96 - 0.34 * low, 0.9 - 0.52 * low);
+  glassU.uSunColor.value.copy(sun.color).multiplyScalar(sun.intensity);
+
+  hemi.intensity = 0.07 + 0.85 * day;
+  hemi.color.setRGB(0.75 - 0.2 * low * day, 0.83 - 0.15 * low * day, 0.9);
+  glassU.uAmbient.value.setRGB(0.32, 0.36, 0.42).multiplyScalar(0.06 + 0.9 * day).add(tmpC.setRGB(0.012, 0.014, 0.022));
+  glassU.uNight.value = nightAmt;
+
+  const fogDay = tmpC.setRGB(0.95, 1.02, 1.12).lerp(new THREE.Color(1.15, 0.85, 0.65), low * 0.6).multiplyScalar(0.03 + 1.1 * day);
+  if (scene.fog) scene.fog.color.copy(fogDay);
+  flatSky.setRGB(0.55, 0.65, 0.76).multiplyScalar(0.04 + 0.96 * day);
+  if (!L.sky) scene.background = flatSky;
+
+  ui.timeRead.textContent = fmt(h);
+  const deg = Math.round(e / D2R);
+  ui.sunRead.textContent = deg > 0
+    ? `Sun ${deg}° ${COMPASS[Math.round((A / D2R) / 22.5) % 16]}`
+    : 'Sun below horizon';
+  applyExposure();
+  scheduleProbe();
+}
+const flatSky = new THREE.Color();
+
+function applyExposure() {
+  if (L.finish) {
+    renderer.toneMapping = THREE.AgXToneMapping;
+    renderer.toneMappingExposure = 0.55 + 1.0 * nightAmt;
+  } else {
+    renderer.toneMapping = THREE.LinearToneMapping;
+    renderer.toneMappingExposure = 0.55;
+  }
+}
+
+// Environment lighting and the glass reflection probe are re-captured after changes settle.
+let probeTimer = 0;
+function scheduleProbe() {
+  clearTimeout(probeTimer);
+  probeTimer = setTimeout(updateProbe, 120);
+}
+function updateProbe() {
+  if (envRT) envRT.dispose();
+  envSky.visible = L.sky;
+  envScene.background = L.sky ? null : flatSky;
+  envRT = pmrem.fromScene(envScene, 0, 1, 2000);
+  scene.environment = L.pbr ? envRT.texture : null;
+  tower.visible = false;
+  cubeCam.update(renderer, scene);
+  tower.visible = true;
+}
+
+function applyLayers() {
+  piers.visible = L.piers;
+  glassU.uPainted.value = L.piers ? 0 : 1;
+  piers.material = L.pbr ? pierPBR : pierFlat;
+  for (const m of swappable) m.material = mats[m.userData.kind][L.pbr ? 0 : 1];
+  glassU.uInterior.value = L.interior ? 1 : 0;
+  glassU.uVariation.value = L.variation ? 1 : 0;
+  glassU.uReflect.value = L.reflect ? 1 : 0;
+  sun.castShadow = L.shadows;
+  gtao.enabled = L.ao;
+  sky.visible = L.sky;
+  scene.fog = L.sky ? new THREE.FogExp2(0xffffff, 0.00048) : null;
+  scene.background = L.sky ? null : flatSky;
+  weatherU.value = L.weather ? 1 : 0;
+  bloom.enabled = L.finish;
+  for (const [k] of LAYERS) document.getElementById('l-' + k).checked = L[k];
+  updateTime();
+}
+
+ui.layers.addEventListener('change', (ev) => {
+  const key = ev.target.id.replace('l-', '');
+  L[key] = ev.target.checked;
+  applyLayers();
+});
+document.getElementById('all-on').addEventListener('click', () => { for (const k in L) L[k] = true; applyLayers(); });
+document.getElementById('all-off').addEventListener('click', () => { for (const k in L) L[k] = false; applyLayers(); });
+ui.hour.addEventListener('input', updateTime);
+
+// ---- Viewpoints ----
+const VIEWS = {
+  plaza: { pos: [-70, 6, 95], target: [0, 55, 0] },
+  street: { pos: [-36, 1.7, 48], target: [-4, 40, 0] },
+  skyline: { pos: [-640, 40, 900], target: [0, 150, 0] },
+};
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let tween = null;
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-view]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  const v = VIEWS[b.dataset.view];
+  const to = { pos: new THREE.Vector3(...v.pos), target: new THREE.Vector3(...v.target) };
+  if (reduceMotion) {
+    camera.position.copy(to.pos); controls.target.copy(to.target); tween = null;
+  } else {
+    tween = { from: { pos: camera.position.clone(), target: controls.target.clone() }, to, t: 0 };
+  }
+}));
+
+// ---- Loop ----
+const clock = new THREE.Clock();
+let frames = 0, acc = 0;
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (tween) {
+    tween.t = Math.min(1, tween.t + dt / 1.4);
+    const k = tween.t < 0.5 ? 4 * tween.t ** 3 : 1 - (-2 * tween.t + 2) ** 3 / 2;
+    camera.position.lerpVectors(tween.from.pos, tween.to.pos, k);
+    controls.target.lerpVectors(tween.from.target, tween.to.target, k);
+    if (tween.t === 1) tween = null;
+  }
+  controls.update();
+  composer.render();
+  frames++; acc += dt;
+  if (acc > 0.5) {
+    ui.fps.textContent = `${Math.round(frames / acc)} fps`;
+    frames = 0; acc = 0;
+  }
+});
+
+applyLayers();
+</script>

@@ -8,8 +8,8 @@ import math
 import geopandas as gpd
 import numpy as np
 import shapely
-from shapely.geometry import LineString, MultiPolygon, Polygon, box
-from shapely.ops import linemerge, polygonize, unary_union
+from shapely.geometry import MultiPolygon, Polygon, box
+from shapely.ops import polygonize, unary_union
 
 from .areas import area_polygon_local
 from .config import area_dir, load_config
@@ -94,7 +94,7 @@ def lake_from_coastline(coast_lines, extent: Polygon) -> shapely.Geometry:
     lines = [g for g in coast_lines if g.intersects(extent)]
     if not lines:
         return Polygon()
-    merged = linemerge(unary_union(lines))
+    merged = shapely.line_merge(unary_union(lines))
     clipped = merged.intersection(extent.buffer(1.0))
     faces = list(polygonize(unary_union([extent.exterior, clipped])))
     segs = []

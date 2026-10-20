@@ -28,6 +28,7 @@ MATERIALS = {
     "path": (0.90, 0.89, 0.86, 1.0),
 }
 MAT_INDEX = {name: i for i, name in enumerate(MATERIALS)}
+GROUND_CELL = 125.0
 
 
 def _tile_key(x: float, y: float, size: float) -> tuple[int, int]:
@@ -73,8 +74,12 @@ def build(areas: list[int], build_name: str) -> dict:
             if piece.is_empty:
                 continue
             mb = mesh.MeshBuilder()
-            for poly in _polys(piece):
-                mesh.add_flat(mb, poly, 0.0)
+            # Triangulate in small cells: earcut can fail on huge polygons with many
+            # holes (the lake, the street network), and smaller triangles shade better.
+            for cell in _cells(square, GROUND_CELL):
+                sub = shapely.set_precision(piece.intersection(cell), 0.01)
+                for poly in _polys(sub):
+                    mesh.add_flat(mb, poly, 0.0)
             if (arr := mb.arrays()) is not None:
                 arr.pop("_FEATURE_ID_0")
                 meshes.append({"name": layer, "material": MAT_INDEX[layer], "arrays": arr})
@@ -144,6 +149,14 @@ def build(areas: list[int], build_name: str) -> dict:
     print(f"  build '{build_name}': {stats['tiles']} tiles, {stats['triangles']:,} triangles, "
           f"{stats['bytes'] / 1e6:.1f} MB")
     return report
+
+
+def _cells(square, size: float):
+    x0, y0, x1, y1 = square.bounds
+    n = max(1, round((x1 - x0) / size))
+    step = (x1 - x0) / n
+    return [box(x0 + i * step, y0 + j * step, x0 + (i + 1) * step, y0 + (j + 1) * step)
+            for i in range(n) for j in range(n)]
 
 
 def _polys(geom):

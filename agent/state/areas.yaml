@@ -319,9 +319,16 @@
       status: done
       at: '2026-10-20'
     verify:
-      status: todo
+      status: needs_review
+      at: '2026-10-21'
+      branch: agent/verify-32
   stale: false
-  notes: []
+  notes:
+  - 'osm:w1176285166 (110 North Wacker): building:levels=55 undercounts the 249 m roof; overridden. Worth an OSM note citing CTBUH.'
+  - 'r1870546 (Art Institute): only two building:part ways are mapped; the rest of the outline stays a plain extrusion. A mapper could finish the parts.'
+  - 'Unmapped lidar clusters near Illinois Center and Lakeshore East, e.g. (981,527), (790,271), (934,264), (654,417), (469,-1408): multi-level street decks, vents and kiosks, not missing buildings (mapillary:835492820396224). No change.'
+  - 'w1491636109 (1010 S Wells) is building=construction; the generator now skips construction sites.'
+  - 'Towers finished after the 2017 lidar with OSM heights (e.g. Essex on the Park) keep the OSM height (newer-than-lidar rule).'
 33:
   name: Near South Side
   passes:

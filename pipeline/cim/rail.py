@@ -91,6 +91,12 @@ def profile_block(key: Key) -> pd.DataFrame:
     dem = load_dem(key)
     x, y, z, c = read_points(grown, load_config()["lidar"]["depth"])
     grid, gx, gy, cell = _dsm(x, y, z, c, dem, grown)
+    # Station canopies read 3-5 m above the deck (Washington/Wells), so samples near
+    # platforms and station roofs are dropped; the fit interpolates across them.
+    stations = feats[(feats["railway"] == "platform") | feats["building"].isin(["train_station", "roof"])]
+    covered = shapely.union_all(stations.geometry.buffer(3.0).values) if len(stations) else None
+    if covered is not None:
+        shapely.prepare(covered)
     rows = []
     for way, line in zip(rails["osm_id"], rails.geometry):
         s, sx, sy = _samples(line)
@@ -106,21 +112,33 @@ def profile_block(key: Key) -> pd.DataFrame:
             warnings.simplefilter("ignore", RuntimeWarning)  # samples with no points at all
             zs = np.nanmedian(vals, axis=0)
         ok = np.isfinite(zs)
+        if covered is not None:
+            ok &= ~shapely.contains_xy(covered, sx, sy)
         rows.append(pd.DataFrame({"way": way, "s": s[ok], "z": zs[ok]}))
     return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(columns=["way", "s", "z"])
+
+
+SETTINGS = "v2 no-station-canopies"  # cached blocks made with other settings are redone
+
+
+def _stamp(key: Key):
+    return RAIL / f"{key.i}_{key.j}.settings"
 
 
 def _profile_job(key: Key):
     t0 = time.time()
     df = profile_block(key)
     df.to_parquet(RAIL / f"{key.i}_{key.j}.parquet")
+    _stamp(key).write_text(SETTINGS)
     return key, len(df), time.time() - t0
 
 
 def run(blocks, force: bool = False) -> None:
     RAIL.mkdir(parents=True, exist_ok=True)
-    todo = [k for k in sorted(blocks)
-            if (force or not (RAIL / f"{k.i}_{k.j}.parquet").exists()) and block_paths(k)[0].exists()]
+
+    def current(k):
+        return (RAIL / f"{k.i}_{k.j}.parquet").exists() and _stamp(k).exists() and _stamp(k).read_text() == SETTINGS
+    todo = [k for k in sorted(blocks) if (force or not current(k)) and block_paths(k)[0].exists()]
     if not todo:
         print("  rail: all blocks up to date")
         return
@@ -152,10 +170,34 @@ def deck_heights(line: LineString, s: np.ndarray, x, y, elevated: bool, profile:
         good = (above > 3.0) & (above < 16.0)
         p = p[good]
     if len(p) >= 3:
-        z = pd.Series(p["z"].values).rolling(5, center=True, min_periods=1).median().values
+        z = fit_profile(p["s"].values, p["z"].values)
         # The lidar sees the top of the rails and ties; the deck top is a little lower.
         return np.interp(s, p["s"].values, z) - 0.2
     return ground + DEFAULT_DECK
+
+
+MAX_GRADE = 0.05   # rail is rarely steeper than 4%; a 5% cap removes spikes, not real ramps
+OUTLIER_M = 0.75
+
+
+def fit_profile(s: np.ndarray, z: np.ndarray, window: int = 9) -> np.ndarray:
+    """Deck profile from top-surface samples: robust to trains, trusses and gantries.
+
+    The visual audit found kinks of 58% and 132% grade (Wells Street bridge, Metra at
+    55th Street) from outliers a 5-sample median let through. A wide median, then
+    samples within OUTLIER_M of it, then a grade limit swept both ways.
+    """
+    med = pd.Series(z).rolling(window, center=True, min_periods=1).median().values
+    good = np.abs(z - med) <= OUTLIER_M
+    if good.sum() >= 3:
+        med = np.interp(s, s[good], pd.Series(z[good]).rolling(window, center=True, min_periods=1).median().values)
+    ds = np.diff(s)
+    fwd, back = med.copy(), med.copy()
+    for k in range(1, len(s)):
+        fwd[k] = np.clip(fwd[k], fwd[k - 1] - MAX_GRADE * ds[k - 1], fwd[k - 1] + MAX_GRADE * ds[k - 1])
+    for k in range(len(s) - 2, -1, -1):
+        back[k] = np.clip(back[k], back[k + 1] - MAX_GRADE * ds[k], back[k + 1] + MAX_GRADE * ds[k])
+    return (fwd + back) / 2
 
 
 def _xy(line, s):

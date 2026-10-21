@@ -122,3 +122,15 @@ def test_bridge_deck_fills_slots_between_lanes_and_sidewalks_over_water():
     assert shapely.contains_xy(deck, 6.0, 0) and shapely.contains_xy(deck, -6.0, 0)   # the slots are filled
     assert not shapely.contains_xy(deck, 6.0, 25)                                    # but only over water
     assert not shapely.contains_xy(deck, 20.0, 0)                                    # and not beyond the deck
+
+
+def test_rail_profile_ignores_spikes_and_limits_grade():
+    from cim.rail import MAX_GRADE, fit_profile
+    s = np.arange(0, 200, 2.0)
+    z = np.full_like(s, 8.0)
+    z[50:52] = 10.5                      # a train or truss: +2.5 m over 4 m (the Wells bridge kink)
+    z[80:] += np.linspace(0, 0.8, 20)    # a real gentle rise at the end
+    out = fit_profile(s, z)
+    assert np.abs(out[45:57] - 8.0).max() < 0.3
+    assert (np.abs(np.diff(out)) / np.diff(s)).max() <= MAX_GRADE + 1e-9
+    assert out[-1] > 8.4                 # the real rise survives

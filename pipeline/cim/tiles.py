@@ -489,6 +489,11 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
 
     density = b["n"].fillna(0) / b["fp_area"].clip(lower=1)
     lidar_h = b["p95"] - b["base_min"]
+    # A podium left around a tower mapped as a part (has_parts) also catches tower points
+    # wherever the part is drawn smaller than the tower, so its top 5% is the tower
+    # (Lake Point Tower's podium read 188 m). The podium covers most of it: use the median.
+    podium = b["has_parts"].fillna(False).astype(bool) if "has_parts" in b else pd.Series(False, b.index)
+    lidar_h = lidar_h.where(~podium, b["p50"] - b["base_min"])
     # Towers finished after the spring 2017 survey: lidar measured what stood there
     # before (110 North Wacker reads 34 m, not 249 m). When lidar is under half of a
     # mapped OSM height of 40 m or more, keep the mapping. (City floor counts are the
@@ -498,9 +503,8 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
            & (overlap <= 0.1)
            & ~((b["kind"] == "part") & (b["source_prev"] == "osm:height")))
     # Not for podiums left around a tower mapped as a part (has_parts, see buildings.py).
-    rest = b["has_parts"].fillna(False).astype(bool) if "has_parts" in b else False
     b["newer_than_lidar"] = (use & b["source_prev"].isin(["osm:height", "osm:levels"]) & (b["height_prev"] >= 40)
-                             & (lidar_h < 0.5 * b["height_prev"]) & ~rest)
+                             & (lidar_h < 0.5 * b["height_prev"]) & ~podium)
     use &= ~b["newer_than_lidar"]
     b["gone"] = gone_city_footprints(b, density)
     b.loc[use, "height"] = lidar_h[use].round(2)

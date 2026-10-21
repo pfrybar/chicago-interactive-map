@@ -214,11 +214,13 @@ def _block_job(args):
 
 
 def run(blocks, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
-    """Reconstruct roofs for buildings that have lidar heights and aren't building parts."""
+    """Reconstruct roofs for buildings that have lidar heights and aren't building parts or podiums."""
     ROOFS.mkdir(parents=True, exist_ok=True)
     cfg = load_config()
     depth = cfg["lidar"]["depth"]
-    cand = buildings[(buildings["height_source"] == "lidar") & (buildings["kind"] != "part")]
+    # Podiums around towers mapped as parts stay flat: their points include tower walls.
+    podium = buildings["has_parts"].fillna(False).astype(bool) if "has_parts" in buildings else False
+    cand = buildings[(buildings["height_source"] == "lidar") & (buildings["kind"] != "part") & ~podium]
     from .grid import index as grid_index
     bi, bj = grid_index(cand["cx"].values, cand["cy"].values, BLOCK_LEVEL)
     tmp = WORK / "roofs-tmp"

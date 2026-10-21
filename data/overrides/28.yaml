@@ -1,0 +1,10 @@
+# Near West Side (28). Fixes from the first verify pass (2026-10-21); see agent/state/areas.yaml.
+buildings:
+  osm:w1039763412:
+    height: 4.5
+    reason: >
+      Small Cheval, a one-storey restaurant pavilion (OSM building:levels=1) beside 150 N
+      Riverside. The tower's upper floors cantilever over it, so the lidar reads the
+      overhang (137 m), not the pavilion.
+    evidence: "OSM building:levels=1; 150 N Riverside's cantilevered design"
+add: []

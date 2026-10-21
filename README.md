@@ -104,7 +104,12 @@ sources.yaml ──fetch──► data/raw/        downloads, recorded in source
 
 The viewer shows attribution for every source. Google and Apple map content (Street View, Look Around, Google 3D Tiles) is **not** used anywhere, not even as visual reference. Their terms forbid building map data from it. See [AGENTS.md](AGENTS.md#data-sources).
 
-The project doesn't have a code license yet. Choose one before publishing the repository.
+### License
+
+- **Code:** [Apache License 2.0](LICENSE); see also [NOTICE](NOTICE).
+- **Committed data** (overrides, attribution log): [ODbL 1.0](data/LICENSE.md), the same as OpenStreetMap.
+- **Screenshots** in `docs/images/`: [CC BY 4.0](docs/images/LICENSE.md).
+- **Generated tiles** are produced works of the sources above. Wherever they're published, show the attribution the viewer shows.
 
 ## Roadmap
 

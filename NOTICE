@@ -1,0 +1,15 @@
+Chicago Interactive Map
+Copyright 2026 Paul Frybarger
+
+This product's code is licensed under the Apache License, Version 2.0 (see LICENSE).
+Data and images in this repository carry their own licenses; see data/LICENSE.md
+and docs/images/LICENSE.md.
+
+The map is built from third-party data, each under its own terms:
+  OpenStreetMap — © OpenStreetMap contributors, ODbL 1.0 (https://www.openstreetmap.org/copyright)
+  City of Chicago Data Portal — City of Chicago Data Portal Terms of Use
+  USGS 3DEP lidar — public domain (U.S. Government work)
+  Mapillary and KartaView photos (used as evidence only) — CC BY-SA 4.0, per image
+
+roofer (https://github.com/3DBAG/roofer, GPL-3.0) is run as a separate program by the
+data pipeline; it is not part of this product's code.

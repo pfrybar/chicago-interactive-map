@@ -36,6 +36,11 @@
 </section>
 
 <div class="minimap-host" id="minimap-host"></div>
+<button type="button" class="compass" id="compass" hidden aria-label="Face north (drag to turn)">
+  <svg viewBox="0 0 40 40" aria-hidden="true"><g id="compass-needle">
+    <path d="M20 5 L26 20 L20 17 L14 20 Z" class="north"/><path d="M20 35 L14 20 L20 23 L26 20 Z" class="south"/>
+  </g><text x="20" y="13.5" class="n">N</text></svg>
+</button>
 <div class="loading" id="loading" hidden>Loading tiles <span id="loading-pct">0%</span></div>
 <div class="stick" id="stick" hidden aria-hidden="true"><div class="knob" id="knob"></div></div>
 <footer class="attribution" id="attribution"></footer>

@@ -27,6 +27,7 @@ const HELP: Record<Mode, string> = {
   walk: 'W A S D or arrow keys to walk, hold Shift to go faster. Click the view to look around with the mouse; Esc releases it.',
 }
 const HELP_TOUCH = 'Use the left circle to walk. Drag anywhere else to look around.'
+const HELP_TOUCH_MAP = 'Drag to move. Pinch to zoom, twist to turn, slide two fingers up or down to tilt. Tap a building for details.'
 
 async function start() {
   const canvas = $<HTMLCanvasElement>('view')
@@ -62,7 +63,7 @@ async function start() {
   controls.onModeChange = (m) => {
     $('mode-map').setAttribute('aria-pressed', String(m === 'map'))
     $('mode-walk').setAttribute('aria-pressed', String(m === 'walk'))
-    $('help').textContent = m === 'walk' && touch ? HELP_TOUCH : HELP[m]
+    $('help').textContent = touch ? (m === 'walk' ? HELP_TOUCH : HELP_TOUCH_MAP) : HELP[m]
     $('stick').hidden = !(m === 'walk' && touch) || evalMode
     document.body.classList.toggle('walking', m === 'walk')
   }
@@ -143,9 +144,11 @@ async function start() {
   const fwd = new Vector3()
   const focus = new Vector3()
   let frames = 0, fpsTime = 0, fps = 0, readyFrames = 0
+  const compass = setupCompass(controls, evalMode)
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1)
     controls.update(dt)
+    compass(dt)
     camera.updateMatrixWorld()
     city.update(camera)
     controls.focus(focus)
@@ -235,3 +238,41 @@ function showError(msg: string) {
 }
 
 start()
+
+/** The compass: points north, shows only when the map is turned. Tap to face north, drag to turn. */
+function setupCompass(controls: Controls, evalMode: boolean): (dt: number) => void {
+  const button = $<HTMLButtonElement>('compass')
+  const needle = document.getElementById('compass-needle')!
+  let toNorth = false, drag: { id: number; x: number; moved: boolean } | null = null
+  button.addEventListener('pointerdown', (e) => {
+    drag = { id: e.pointerId, x: e.clientX, moved: false }
+    button.setPointerCapture(e.pointerId)
+    e.stopPropagation()
+  })
+  button.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return
+    const dx = e.clientX - drag.x
+    if (Math.abs(dx) > 2) drag.moved = true
+    controls.turnBy(dx * 0.012)
+    drag.x = e.clientX
+    toNorth = false
+  })
+  const end = (e: PointerEvent) => {
+    if (!drag || e.pointerId !== drag.id) return
+    if (!drag.moved) toNorth = true
+    drag = null
+  }
+  button.addEventListener('pointerup', end)
+  button.addEventListener('pointercancel', end)
+  button.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') toNorth = true })
+  return (dt) => {
+    const h = controls.heading()
+    if (toNorth) {
+      const step = Math.sign(h) * Math.min(Math.abs(h), Math.max(Math.abs(h), 0.3) * dt * 6)
+      controls.turnBy(step)
+      if (Math.abs(controls.heading()) < 0.002) toNorth = false
+    }
+    needle.setAttribute('transform', `rotate(${(-h * 180) / Math.PI} 20 20)`)
+    button.hidden = evalMode || controls.mode !== 'map' || (Math.abs(h) < 0.01 && !drag)
+  }
+}

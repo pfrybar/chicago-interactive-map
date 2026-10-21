@@ -1,5 +1,6 @@
 import { MathUtils, Mesh, PerspectiveCamera, Raycaster, Vector2, Vector3 } from 'three'
 import { MapControls } from 'three/addons/controls/MapControls.js'
+import { TouchMap } from './touch'
 
 export type Mode = 'map' | 'walk'
 
@@ -8,15 +9,18 @@ const WALK_SPEED = 2.2  // m/s, a brisk walk
 const RUN_SPEED = 12    // m/s, more like a bike; for covering ground
 const RADIUS = 0.45     // how close you can get to a wall
 const LOOK_SPEED = 0.0022
+const MIN_CLEARANCE = 5  // m; the map camera never goes lower above the ground
 
 /**
  * Two ways to move:
- * - map: MapControls (drag to pan, right-drag/two fingers to rotate, wheel/pinch to zoom)
+ * - map: MapControls for the mouse (drag to pan, right-drag to rotate, wheel to zoom);
+ *   TouchMap for fingers (drag, pinch, twist, two-finger tilt; see touch.ts)
  * - walk: first person at eye height, collides with buildings
  */
 export class Controls {
   mode: Mode = 'map'
   readonly map: MapControls
+  readonly touch: TouchMap
   private yaw = 0
   private pitch = 0
   private keys = new Set<string>()
@@ -25,6 +29,7 @@ export class Controls {
   onModeChange: (m: Mode) => void = () => {}
 
   private down = new Raycaster()
+  private lastGroundCheck = new Vector3(Infinity, 0, 0)
 
   constructor(
     private camera: PerspectiveCamera,
@@ -41,6 +46,7 @@ export class Controls {
     map.maxDistance = 9000
     map.zoomToCursor = true
     this.map = map
+    this.touch = new TouchMap(camera, map, dom, () => [...this.colliders(), ...this.ground()])
     this.ray.firstHitOnly = true
     this.down.firstHitOnly = true
 
@@ -100,12 +106,26 @@ export class Controls {
     }
     this.mode = mode
     this.map.enabled = mode === 'map'
+    this.touch.enabled = mode === 'map'
     if (mode === 'map' && document.pointerLockElement) document.exitPointerLock()
     this.onModeChange(mode)
   }
 
   setStick(x: number, y: number): void {
     this.stick.set(x, y)
+  }
+
+  /** Compass heading of the view in radians, clockwise from north (world -z is north). */
+  heading(): number {
+    const f = new Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion)
+    return Math.atan2(f.x, -f.z)
+  }
+
+  /** Turn the map by `angle` radians clockwise on screen (the heading drops) about the point it's looking at. */
+  turnBy(angle: number): void {
+    if (this.mode !== 'map') return
+    this.touch.turn(angle, this.map.target.clone())
+    this.camera.lookAt(this.map.target)
   }
 
   /** Where the camera is aimed on the ground (world). */
@@ -136,7 +156,9 @@ export class Controls {
 
   update(dt: number): void {
     if (this.mode === 'map') {
+      this.touch.update(dt * 1000)
       this.map.update()
+      this.keepAboveGround()
       return
     }
     const k = this.keys
@@ -156,6 +178,29 @@ export class Controls {
     const r = new Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw))
     const move = f.multiplyScalar(fwd / len).addScaledVector(r, side / len).multiplyScalar(speed * dt)
     this.moveWithCollisions(move)
+  }
+
+  /**
+   * Map mode: keep the point the camera orbits on the ground, and the camera above it.
+   * Panning moves that point horizontally only, so away from downtown (where the ground
+   * is 10-20 m higher) it ended up underground, and a fully tilted, zoomed-in camera
+   * with it.
+   */
+  private keepAboveGround(): void {
+    const t = this.map.target, c = this.camera.position
+    if (t.distanceToSquared(this.lastGroundCheck) > 1) {
+      const g = this.groundAt(t.x, t.z)
+      if (g !== null && Math.abs(g - t.y) > 0.25) {
+        c.y += g - t.y
+        t.y = g
+      }
+      this.lastGroundCheck.copy(t)
+    }
+    const under = this.groundAt(c.x, c.z)
+    if (under !== null && c.y < under + MIN_CLEARANCE) {
+      c.y = under + MIN_CLEARANCE
+      this.camera.lookAt(t)
+    }
   }
 
   private moveWithCollisions(move: Vector3): void {

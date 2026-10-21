@@ -137,6 +137,25 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid 
 }
 .attribution a { color: inherit; }
 
+.compass {
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top, 0px)) + 180px);
+  right: max(12px, env(safe-area-inset-right, 0px));
+  width: 44px; height: 44px; padding: 2px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+  touch-action: none;
+}
+.compass:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.compass svg { display: block; width: 100%; height: 100%; }
+.compass .north { fill: #c8102e; }  /* the red of the Chicago flag's stars */
+.compass .south { fill: var(--ink-2); }
+.compass .n { font: 700 7px var(--mono); fill: var(--accent-ink); text-anchor: middle; }
 .stick {
   position: fixed;
   left: max(28px, env(safe-area-inset-left, 0px));
@@ -162,7 +181,7 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid 
 }
 
 /* Screenshots for the eval harness show only the 3D view. */
-body.eval .hud, body.eval .card, body.eval .minimap-host, body.eval .loading, body.eval .stick { display: none; }
+body.eval .hud, body.eval .card, body.eval .minimap-host, body.eval .loading, body.eval .stick, body.eval .compass { display: none; }
 
 @media (max-width: 640px) {
   .hud { width: calc(100% - 2 * var(--gap) - 120px); padding: 10px 12px; gap: 8px; }
@@ -170,6 +189,7 @@ body.eval .hud, body.eval .card, body.eval .minimap-host, body.eval .loading, bo
   .help, .jump { display: none; }
   .where { font-size: 15px; }
   .minimap { width: 108px; height: 108px; }
+  .compass { top: calc(max(12px, env(safe-area-inset-top, 0px)) + 120px); }
   .card { left: var(--gap); right: var(--gap); width: auto; }
   body.walking .card { display: none; }
 }

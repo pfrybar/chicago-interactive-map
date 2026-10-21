@@ -84,3 +84,22 @@ def test_crown_cells_separates_trees_from_poles():
     raw[13, 13] = 10.0
     c = crown_cells(raw, np.array([5, 13]), np.array([5, 13]), np.array([9.0, 10.0]))
     assert c[0] < MIN_CROWN_CELLS <= c[1]
+
+
+def test_tree_mask_covers_carriageways_and_the_l_but_not_sidewalks_or_tunnels():
+    import pandas as pd
+    import shapely
+    from shapely.geometry import LineString
+    from cim.trees import _carriageways_and_rail
+    feats = gpd.GeoDataFrame(pd.DataFrame({
+        "highway": ["secondary", "footway", "secondary", None],
+        "railway": [None, None, None, "subway"],
+        "lanes": ["4", None, None, None], "tunnel": [None, None, "yes", None],
+        "bridge": [None, None, None, "yes"], "layer": [None, None, "-1", "2"],
+    }), geometry=[LineString([(0, 0), (100, 0)]), LineString([(0, 10), (100, 10)]),
+                  LineString([(0, 50), (100, 50)]), LineString([(0, 80), (100, 80)])])
+    m = _carriageways_and_rail(feats, (-10, -10, 110, 110))
+    assert shapely.contains_xy(m, 50, 4)        # inside a 4-lane carriageway (13.2 m wide)
+    assert not shapely.contains_xy(m, 50, 10)   # a footway: street trees stand there
+    assert not shapely.contains_xy(m, 50, 50)   # a road in a tunnel
+    assert shapely.contains_xy(m, 50, 87)       # under the elevated structure, near its edge

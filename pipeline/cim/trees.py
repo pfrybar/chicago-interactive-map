@@ -87,6 +87,13 @@ def detect(key: Key) -> pd.DataFrame:
     inside = (px >= x0) & (px < x1) & (py >= y0) & (py < y1)
     px, py, ph, crown = px[inside], py[inside], chm[pi[inside], pj[inside]], crown[inside]
     radius = np.clip(0.18 * ph + 1.2, 1.5, 9.0)
+    # No trunks in the middle of a road or on a railway: those tops are the L's steel,
+    # signals and vehicles (33 "trees" stood in Lake Street under the L). Roadside trees
+    # whose crowns overhang the street are outside the inner 80% of the carriageway.
+    blocked = _carriageways_and_rail(feats, grown)
+    if blocked is not None and len(px):
+        free = ~shapely.contains_xy(blocked, px, py)
+        px, py, ph, radius, crown = px[free], py[free], ph[free], radius[free], crown[free]
     # Boats, waves and harbor structures are sometimes classed as vegetation.
     water = feats[((feats["natural"] == "water") | (feats["waterway"] == "riverbank"))
                   & feats.geometry.geom_type.isin(("Polygon", "MultiPolygon"))].geometry
@@ -96,6 +103,29 @@ def detect(key: Key) -> pd.DataFrame:
         px, py, ph, radius, crown = px[dry], py[dry], ph[dry], radius[dry], crown[dry]
     return pd.DataFrame({"x": px, "y": py, "base": dem.sample(px, py), "height": ph, "radius": radius,
                          "crown_cells": crown})
+
+
+def _carriageways_and_rail(feats, bounds):
+    """Inner 80% of mapped road carriageways, railway tracks (1.5 m each side) and elevated rail (8 m)."""
+    from .ground import ROAD_WIDTH, _is_lower_level, _width
+    lines = feats.geometry.geom_type.isin(("LineString", "MultiLineString"))
+    roads = feats[lines & feats["highway"].isin(ROAD_WIDTH.keys())]
+    rail = feats[lines & feats["railway"].isin(["rail", "subway", "light_rail", "tram", "narrow_gauge"])]
+    parts = []
+    for _, r in roads.iterrows():
+        if not _is_lower_level(r):  # tunnels and lower decks don't stop trees above them
+            parts.append(r.geometry.buffer(0.4 * _width(r, ROAD_WIDTH), cap_style="flat"))
+    for _, r in rail.iterrows():
+        if _is_lower_level(r):
+            continue
+        # An elevated structure (the L) spans the whole street, with girders at the curbs.
+        elevated = r.get("bridge") not in (None, "no") or str(r.get("layer") or "0").lstrip("-").isdigit() and int(r.get("layer") or 0) > 0
+        parts.append(r.geometry.buffer(8.0 if elevated else 1.5, cap_style="flat"))
+    if not parts:
+        return None
+    out = shapely.clip_by_rect(shapely.union_all(parts), *bounds)
+    shapely.prepare(out)
+    return out
 
 
 def crown_cells(raw: np.ndarray, pi, pj, peak_h, reach: int = 3) -> np.ndarray:
@@ -110,7 +140,7 @@ def crown_cells(raw: np.ndarray, pi, pj, peak_h, reach: int = 3) -> np.ndarray:
 
 def settings() -> str:
     """The detection settings a cached block was made with; blocks with others are redone."""
-    return f"v2 min_height={MIN_HEIGHT} crown={MIN_CROWN_CELLS}/{MIN_CROWN_CELLS_TALL}@{TALL_M}m"
+    return f"v3 min_height={MIN_HEIGHT} crown={MIN_CROWN_CELLS}/{MIN_CROWN_CELLS_TALL}@{TALL_M}m roads+rail8"
 
 
 def _stamp(key: Key):

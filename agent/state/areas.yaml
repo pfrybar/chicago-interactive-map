@@ -84,17 +84,29 @@
       branch: agent/verify-8
   stale: false
   notes:
-  - 'chi:349012 (Engine 42 firehouse): OSM building:levels=21 is wrong; overridden to the lidar 13 m. Fix in OSM.'
-  - 'Built after the 2017 lidar, OSM heights confirmed and kept: 369 Grand (41 fl, 2021), The Leo (21 fl, 2024),
-    Old Town Park III (41 fl, 2021), The 808 Cleveland (22 fl, 2023), One Bennett Park (2019). Superior House (12 fl) matches OSM.'
-  - 'Kept by the newer-than-lidar rule but not confirmed; a person should check: chi:815574 "Bellevue Place" (31 levels on a
-    343 m2 footprint, lidar 17 m; the Bellevue towers are 1970s), chi:332290 (31 levels, lidar 14 m, Clark & Chestnut),
-    chi:837926 (19 levels, lidar 26 m, near Ohio & Wabash; a 2022 photo shows a 4-5 storey brick building), Margaux w616957629
-    (14 levels, lidar 10 m), Foundry w1079689516, Windsor North+Vine, osm:w656606802 (likely Old Town Park II).'
-  - 'Lidar right, OSM understates (lidar height used): The Sinclair w389457630 (35 fl, 128 m), Gold Coast Galleria w685632397
-    (34 fl, building:levels=7), The Venetian w685632411.'
-  - 'City footprints not in OSM around the former Cabrini-Green site (e.g. (-1622,2374)) stand on bare ground in the lidar and in a
-    2018 photo (mapillary:163421115643653): demolished. The generator now drops city-only footprints on bare ground.'
+  - 'chi:349012 (Engine 42 firehouse): OSM building:levels=21 is wrong; overridden
+    to the lidar 13 m. Fix in OSM.'
+  - 'Built after the 2017 lidar, OSM heights confirmed and kept: 369 Grand (41 fl,
+    2021), The Leo (21 fl, 2024), Old Town Park III (41 fl, 2021), The 808 Cleveland
+    (22 fl, 2023), One Bennett Park (2019). Superior House (12 fl) matches OSM.'
+  - 'Kept by the newer-than-lidar rule but not confirmed; a person should check: chi:815574
+    "Bellevue Place" (31 levels on a 343 m2 footprint, lidar 17 m; the Bellevue towers
+    are 1970s), chi:332290 (31 levels, lidar 14 m, Clark & Chestnut), chi:837926 (19
+    levels, lidar 26 m, near Ohio & Wabash; a 2022 photo shows a 4-5 storey brick
+    building), Margaux w616957629 (14 levels, lidar 10 m), Foundry w1079689516, Windsor
+    North+Vine, osm:w656606802 (likely Old Town Park II).'
+  - 'Lidar right, OSM understates (lidar height used): The Sinclair w389457630 (35
+    fl, 128 m), Gold Coast Galleria w685632397 (34 fl, building:levels=7), The Venetian
+    w685632411.'
+  - 'City footprints not in OSM around the former Cabrini-Green site (e.g. (-1622,2374))
+    stand on bare ground in the lidar and in a 2018 photo (mapillary:163421115643653):
+    demolished. The generator now drops city-only footprints on bare ground.'
+  - 'No lidar returns, built after the survey on empty lots, OSM floors kept: The Seng w1079689517 (5 fl),
+    Elm 551 @ Parkside w957138100 (7 fl). w155075903 (apartments, 4,592 m2, near (-478,841)) and w1135007623
+    have no building:levels, so they use the default height; a mapper should add them.'
+  - 'w751729625 "Peoples Energy Welcome Pavillion" at Navy Pier has no lidar returns; possibly removed. Check in OSM.'
+  - 'Remaining unmapped lidar clusters are small (largest 3,840 m2, by the Jardine plant at (1977,1085)): plant
+    structures, tanks and decks. No change.'
 9:
   name: Edison Park
   passes:

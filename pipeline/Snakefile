@@ -83,7 +83,7 @@ rule tiles:
         rules.trees.output,
         expand("data/work/area-{area}/buildings.parquet", area=AREAS),
         rules.osm_features.output,
-        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap", "rail", "trees"),
+        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap", "rail", "trees", "osm_history", "lidar", "overrides", "accuracy"),
     output: f"data/builds/{BUILD}/tileset.json"
     params: areas=",".join(map(str, AREAS))
     threads: workflow.cores

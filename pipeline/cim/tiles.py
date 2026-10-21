@@ -447,6 +447,25 @@ def _apply_overrides(buildings: gpd.GeoDataFrame, areas: list[int]) -> gpd.GeoDa
     return overrides.apply(buildings, areas, dem_at)
 
 
+def stale_height_tags(b: pd.DataFrame, candidates) -> pd.Series:
+    """Candidates whose OSM height tags were already on the map before the survey flew.
+
+    Such a tag isn't evidence of a building finished after the survey (Sheridan Glen
+    has carried 21 floors since 2013 and is a low-rise), so the lidar wins. Looked up
+    in the OSM version history; unknown histories leave the candidate alone.
+    """
+    from .lidar import survey_start
+    from .osm_history import height_tags_since
+    out = pd.Series(False, index=b.index)
+    start = survey_start()
+    for i in candidates:
+        osm = b.at[i, "osm_id"]
+        if isinstance(osm, str):
+            since = height_tags_since(osm)
+            out.at[i] = since is not None and since < start
+    return out
+
+
 def gone_city_footprints(b: pd.DataFrame, density: pd.Series) -> pd.Series:
     """City footprints that OSM doesn't have, where the lidar sees bare ground.
 
@@ -505,6 +524,8 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
     # Not for podiums left around a tower mapped as a part (has_parts, see buildings.py).
     b["newer_than_lidar"] = (use & b["source_prev"].isin(["osm:height", "osm:levels"]) & (b["height_prev"] >= 40)
                              & (lidar_h < 0.5 * b["height_prev"]) & ~podium)
+    b["stale_osm_height"] = stale_height_tags(b, b.index[b["newer_than_lidar"]])
+    b.loc[b["stale_osm_height"], "newer_than_lidar"] = False
     use &= ~b["newer_than_lidar"]
     b["gone"] = gone_city_footprints(b, density)
     b.loc[use, "height"] = lidar_h[use].round(2)

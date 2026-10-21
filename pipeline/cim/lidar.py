@@ -46,6 +46,13 @@ GROUND, NOISE, WATER, BRIDGE, HIGH_NOISE = 2, 7, 9, 17, 18
 BUILDING = 6
 
 
+def survey_start():
+    """When the configured lidar survey began flying (UTC)."""
+    from datetime import datetime, timezone
+    day = {"ept2017": (2017, 3, 1), "cook2022": (2022, 4, 5)}[lidar_source()]
+    return datetime(*day, tzinfo=timezone.utc)
+
+
 def cfg() -> dict:
     return load_config()["lidar"]
 

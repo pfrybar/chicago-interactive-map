@@ -43,6 +43,7 @@ def report(buildings: pd.DataFrame, blocks, out_path) -> dict:
                                   for src in sorted(lid["source_prev"].dropna().unique())},
             "no_lidar_returns": int(len(empty)),
             "kept_mapped_newer_than_lidar": int(b.get("newer_than_lidar", pd.Series(dtype=bool)).sum()),
+            "stale_osm_heights_overruled": int(b.get("stale_osm_height", pd.Series(dtype=bool)).sum()),
             "dropped_city_footprints_on_bare_ground": int(len(dropped)),
             "unmapped_clusters": int(len(gaps)),
             "unmapped_area_m2": round(float(gaps["area"].sum()), 0),

@@ -116,6 +116,18 @@ await gesture([[150, 600], [250, 600]], [[150, 420], [250, 420]])
 const s2 = await state()
 console.log(`tilt: polar ${(s1.polar * 57.3).toFixed(1)}° -> ${(s2.polar * 57.3).toFixed(1)}°`)
 if (!(s2.polar > s1.polar + 0.1)) fail.push('sliding two fingers up did not tilt toward the horizon')
+// Fully tilted, a one-finger drag along the top edge (near the horizon) must not fling
+// the map out of the city.
+const before = await page.evaluate(() => window.__cimDebug.controls.map.target.clone())
+// (320, 250) is clear of the panel and the compass; at full tilt the horizon is near y = 310.
+await touch('touchStart', [[320, 250]])
+for (let i = 1; i <= 10; i++) { await touch('touchMove', [[320, 250 + 9 * i]]); await page.waitForTimeout(40) }
+await touch('touchEnd', [])
+await page.waitForTimeout(300)
+const flung = await page.evaluate((b) => window.__cimDebug.controls.map.target.distanceTo(b), before)
+console.log(`drag near the horizon: target moved ${flung.toFixed(0)} m (view distance ${s2.dist.toFixed(0)} m)`)
+if (flung > 4 * s2.dist) fail.push('dragging near the horizon flung the map')
+if (flung < 20) fail.push('dragging near the horizon did not move the map at all')
 await gesture([[170, 450], [230, 450]], [[110, 450], [290, 450]])
 const s3 = await state()
 console.log(`pinch out: distance ${s2.dist.toFixed(0)} -> ${s3.dist.toFixed(0)} m`)

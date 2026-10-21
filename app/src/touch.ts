@@ -9,6 +9,8 @@ import type { MapControls } from 'three/addons/controls/MapControls.js'
  * - two fingers sliding up or down together tilt the view
  * MapControls still handles the mouse.
  */
+const REACH = 3  // how far a drag can grab the ground, in camera-to-target distances
+
 export class TouchMap {
   private pointers = new Map<number, Vector2>()
   private ray = new Raycaster()
@@ -54,6 +56,7 @@ export class TouchMap {
     if (p.length === 1) {
       this.groundPoint(p[0], this.grab)
       this.plane.constant = -this.grab.y
+      this.onPlane(p[0], this.grab)  // far hits (a tower on the horizon) are capped the same way
     } else if (p.length >= 2) {
       const g = this.shape(p[0], p[1])
       this.prev = g
@@ -69,8 +72,7 @@ export class TouchMap {
     pt.set(e.clientX, e.clientY)
     const p = [...this.pointers.values()]
     if (p.length === 1) {
-      const now = this.onPlane(p[0], new Vector3())
-      if (now) this.translate(this.grab.clone().sub(now))
+      this.translate(this.grab.clone().sub(this.onPlane(p[0], new Vector3())))
     } else if (p.length >= 2 && this.prev && this.start) {
       const g = this.shape(p[0], p[1])
       if (this.tilting === null) this.tilting = this.decideTilt(p)
@@ -78,11 +80,8 @@ export class TouchMap {
         this.tilt((g.mid.y - this.prev.mid.y) / this.dom.clientHeight)
       } else if (this.tilting === false) {
         const a = this.onPlane(this.prev.mid, new Vector3())
-        const b = this.onPlane(g.mid, new Vector3())
-        if (a && b) {
-          this.translate(a.sub(b))
-          this.pivot.copy(this.onPlane(g.mid, new Vector3()) ?? this.pivot)
-        }
+        this.translate(a.sub(this.onPlane(g.mid, new Vector3())))
+        this.onPlane(g.mid, this.pivot)
         this.zoom(this.prev.dist / Math.max(g.dist, 1))
         this.turn(g.angle - this.prev.angle)
       }
@@ -124,10 +123,26 @@ export class TouchMap {
     return this.ray.ray.intersectPlane(this.plane, out) ?? out.copy(this.map.target)
   }
 
-  /** Where a screen point meets the gesture's horizontal plane (null above the horizon). */
-  private onPlane(p: Vector2, out: Vector3): Vector3 | null {
+  /**
+   * Where a screen point meets the gesture's horizontal plane, no farther than REACH
+   * times the camera's distance from its target. Near the horizon of a tilted view a
+   * few pixels span kilometers, and above it there's no ground at all: dragging there
+   * flung the map out of the city. Beyond the limit, points sit on it in the same direction.
+   */
+  private onPlane(p: Vector2, out: Vector3): Vector3 {
     this.ray.setFromCamera(this.ndc(p), this.camera)
-    return this.ray.ray.intersectPlane(this.plane, out)
+    const cam = this.camera.position
+    const reach = REACH * cam.distanceTo(this.map.target)
+    const dir = this.ray.ray.direction
+    const flat = Math.hypot(dir.x, dir.z) || 1e-9
+    const hit = this.ray.ray.intersectPlane(this.plane, out)
+    if (hit && Math.hypot(hit.x - cam.x, hit.z - cam.z) <= reach) return hit
+    // Past the limit (and above the horizon) the distance keeps growing, gently: one
+    // `reach` per radian of view angle, so dragging in the sky still moves the map.
+    const height = Math.max(cam.y + this.plane.constant, 1)
+    const below = Math.asin(MathUtils.clamp(-dir.y, -1, 1))
+    const d = reach * (1 + Math.max(0, Math.atan(height / reach) - below))
+    return out.set(cam.x + (dir.x / flat) * d, -this.plane.constant, cam.z + (dir.z / flat) * d)
   }
 
   private translate(d: Vector3): void {

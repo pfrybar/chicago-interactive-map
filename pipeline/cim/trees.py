@@ -18,7 +18,7 @@ import shapely
 from scipy import ndimage
 
 from . import mesh
-from .config import lidar_work, load_config
+from .config import lidar_work, lidar_workers, load_config
 from .grid import Key
 from .lidar import block_paths, load_dem, read_points
 from .osm import load_features
@@ -97,7 +97,7 @@ def run(blocks, force: bool = False) -> None:
     if not todo:
         print("  trees: all blocks up to date")
         return
-    workers = load_config()["lidar"]["workers"]
+    workers = lidar_workers(load_config()["lidar"]["workers"])
     print(f"  trees: detecting in {len(todo)} blocks, {workers} workers")
     t0, total = time.time(), 0
     with ProcessPoolExecutor(mp_context=_FRESH, max_workers=workers) as pool:

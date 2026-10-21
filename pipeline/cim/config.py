@@ -36,3 +36,10 @@ def lidar_work(name: str) -> Path:
     """Work folder for a lidar-derived step. Each survey has its own, so switching keeps the other's caches."""
     source = lidar_source()
     return WORK / name if source == "ept2017" else WORK / f"{name}-{source}"
+
+
+def lidar_workers(configured: int) -> int:
+    """Worker count for a lidar step: 2022 blocks hold twice the points, so fewer at once."""
+    if lidar_source() == "cook2022":
+        return min(configured, load_config()["lidar"].get("cook2022_workers", 4))
+    return configured

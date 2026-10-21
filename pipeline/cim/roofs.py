@@ -24,7 +24,7 @@ import laspy
 import numpy as np
 import shapely
 
-from .config import WORK, lidar_work, load_config
+from .config import WORK, lidar_work, lidar_workers, load_config
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
 from .lidar import BRIDGE, GROUND, HIGH_NOISE, NOISE, WATER, Dem, block_paths, fingerprint, is_current, read_points
@@ -226,7 +226,7 @@ def run(blocks, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     tmp = WORK / "roofs-tmp"
     tmp.mkdir(parents=True, exist_ok=True)
     jobs = []
-    workers = cfg["roofs"]["workers"]
+    workers = lidar_workers(cfg["roofs"]["workers"])
     threads = cfg["roofs"]["threads_per_block"]
     for key in sorted(blocks):
         sel = cand[(bi == key.i) & (bj == key.j)]

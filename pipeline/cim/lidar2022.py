@@ -83,9 +83,21 @@ def index() -> dict:
     return json.loads(INDEX.read_text()) if INDEX.exists() else fetch_index()
 
 
+@lru_cache
+def usable() -> frozenset:
+    """Tiles within `lidar.cook2022_margin` of the city. Beyond that (the ground margin
+    around the city, where no buildings are drawn) the 2017 survey is good enough."""
+    from .areas import area_polygon_local
+    city = shapely.union_all([area_polygon_local(a) for a in range(1, 78)])
+    reach = city.buffer(_cfg().get("cook2022_margin", 250))
+    shapely.prepare(reach)
+    return frozenset(t for t, b in index().items() if reach.intersects(shapely.box(*b)))
+
+
 def tiles_for(bounds) -> list[str]:
     x0, y0, x1, y1 = bounds
-    return sorted(t for t, (a, b, c, d) in index().items() if a < x1 and c > x0 and b < y1 and d > y0)
+    return sorted(t for t, (a, b, c, d) in index().items()
+                  if a < x1 and c > x0 and b < y1 and d > y0 and t in usable())
 
 
 # ---------------------------------------------------------------- download and convert
@@ -171,10 +183,23 @@ def ensure(tile: str) -> None:
 # ---------------------------------------------------------------- reading
 
 def read_points(bounds_local, depth: int | None = None):
-    """Points inside a local-frame box: (x, y, z_local, classification). `depth` is ignored."""
+    """Points inside a local-frame box: (x, y, z_local, classification).
+
+    Where county tiles don't cover the box (outside Cook County: Indiana, parts of the
+    lake), the 2017 survey fills in, read down to `depth`.
+    """
     x0, y0, x1, y1 = bounds_local
+    tiles = tiles_for(bounds_local)
+    covered = shapely.union_all([shapely.box(*index()[t]) for t in tiles]) if tiles else shapely.Polygon()
     parts = []
-    for tile in tiles_for(bounds_local):
+    gap = shapely.box(*bounds_local).difference(covered)
+    if gap.area > 1.0:
+        from .lidar import _read_ept
+        ex, ey, ez, ec = _read_ept(bounds_local, depth if depth is not None else load_config()["lidar"]["depth"])
+        keep = ~shapely.contains_xy(covered, ex, ey) if tiles else np.ones(len(ex), bool)
+        if keep.any():
+            parts.append((ex[keep], ey[keep], ez[keep], ec[keep]))
+    for tile in tiles:
         ensure(tile)
         las = laspy.read(tile_path(tile))
         x, y = np.asarray(las.x), np.asarray(las.y)

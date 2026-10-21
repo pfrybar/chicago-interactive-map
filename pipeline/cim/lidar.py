@@ -28,7 +28,7 @@ import shapely
 from pyproj import Transformer
 from scipy import ndimage
 
-from .config import RAW, WORK, lidar_source, lidar_work, load_config, load_sources
+from .config import RAW, WORK, lidar_source, lidar_work, lidar_workers, load_config, load_sources
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
 
@@ -396,7 +396,7 @@ def run(blocks: dict, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     if not jobs:
         print("  lidar: all blocks up to date")
         return
-    workers = cfg()["workers"]
+    workers = lidar_workers(cfg()["workers"])
     print(f"  lidar: {len(jobs)} blocks to process at depth {depth}, {workers} workers")
     t0 = time.time()
     with ProcessPoolExecutor(mp_context=_FRESH, max_workers=workers) as pool:

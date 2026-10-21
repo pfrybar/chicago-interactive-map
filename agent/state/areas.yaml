@@ -101,12 +101,14 @@
   - 'City footprints not in OSM around the former Cabrini-Green site (e.g. (-1622,2374))
     stand on bare ground in the lidar and in a 2018 photo (mapillary:163421115643653):
     demolished. The generator now drops city-only footprints on bare ground.'
-  - 'No lidar returns, built after the survey on empty lots, OSM floors kept: The Seng w1079689517 (5 fl),
-    Elm 551 @ Parkside w957138100 (7 fl). w155075903 (apartments, 4,592 m2, near (-478,841)) and w1135007623
-    have no building:levels, so they use the default height; a mapper should add them.'
-  - 'w751729625 "Peoples Energy Welcome Pavillion" at Navy Pier has no lidar returns; possibly removed. Check in OSM.'
-  - 'Remaining unmapped lidar clusters are small (largest 3,840 m2, by the Jardine plant at (1977,1085)): plant
-    structures, tanks and decks. No change.'
+  - 'No lidar returns, built after the survey on empty lots, OSM floors kept: The
+    Seng w1079689517 (5 fl), Elm 551 @ Parkside w957138100 (7 fl). w155075903 (apartments,
+    4,592 m2, near (-478,841)) and w1135007623 have no building:levels, so they use
+    the default height; a mapper should add them.'
+  - w751729625 "Peoples Energy Welcome Pavillion" at Navy Pier has no lidar returns;
+    possibly removed. Check in OSM.
+  - 'Remaining unmapped lidar clusters are small (largest 3,840 m2, by the Jardine
+    plant at (1977,1085)): plant structures, tanks and decks. No change.'
 9:
   name: Edison Park
   passes:

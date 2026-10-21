@@ -9,6 +9,7 @@ const WALK_SPEED = 2.2  // m/s, a brisk walk
 const RUN_SPEED = 12    // m/s, more like a bike; for covering ground
 const RADIUS = 0.45     // how close you can get to a wall
 const LOOK_SPEED = 0.0022
+const MIN_CLEARANCE = 5  // m; the map camera never goes lower above the ground
 
 /**
  * Two ways to move:
@@ -28,6 +29,7 @@ export class Controls {
   onModeChange: (m: Mode) => void = () => {}
 
   private down = new Raycaster()
+  private lastGroundCheck = new Vector3(Infinity, 0, 0)
 
   constructor(
     private camera: PerspectiveCamera,
@@ -156,6 +158,7 @@ export class Controls {
     if (this.mode === 'map') {
       this.touch.update(dt * 1000)
       this.map.update()
+      this.keepAboveGround()
       return
     }
     const k = this.keys
@@ -175,6 +178,29 @@ export class Controls {
     const r = new Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw))
     const move = f.multiplyScalar(fwd / len).addScaledVector(r, side / len).multiplyScalar(speed * dt)
     this.moveWithCollisions(move)
+  }
+
+  /**
+   * Map mode: keep the point the camera orbits on the ground, and the camera above it.
+   * Panning moves that point horizontally only, so away from downtown (where the ground
+   * is 10-20 m higher) it ended up underground, and a fully tilted, zoomed-in camera
+   * with it.
+   */
+  private keepAboveGround(): void {
+    const t = this.map.target, c = this.camera.position
+    if (t.distanceToSquared(this.lastGroundCheck) > 1) {
+      const g = this.groundAt(t.x, t.z)
+      if (g !== null && Math.abs(g - t.y) > 0.25) {
+        c.y += g - t.y
+        t.y = g
+      }
+      this.lastGroundCheck.copy(t)
+    }
+    const under = this.groundAt(c.x, c.z)
+    if (under !== null && c.y < under + MIN_CLEARANCE) {
+      c.y = under + MIN_CLEARANCE
+      this.camera.lookAt(t)
+    }
   }
 
   private moveWithCollisions(move: Vector3): void {

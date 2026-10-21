@@ -185,6 +185,24 @@ const s4 = await state()
 console.log(`compass tap: heading ${(s4.heading * 57.3).toFixed(1)}°, compass shown ${s4.compass}`)
 if (Math.abs(s4.heading) > 0.02) fail.push('tapping the compass did not turn the map to north')
 
+// On high, flat ground away from downtown, tilting fully and zooming in all the way
+// mustn't take the camera underground.
+await page.goto(`${APP_URL}/?view=bungalow-belt`)
+await ready()
+for (let i = 0; i < 2; i++) await gesture([[150, 600], [250, 600]], [[150, 380], [250, 380]])
+for (let i = 0; i < 4; i++) await gesture([[185, 450], [215, 450]], [[60, 450], [340, 450]])
+await page.waitForTimeout(1000)
+const clearance = await page.evaluate(() => {
+  const { controls, stage } = window.__cimDebug
+  const c = stage.camera.position, t = controls.map.target
+  return { camera: c.y - controls.groundAt(c.x, c.z), target: t.y - controls.groundAt(t.x, t.z),
+           polar: Math.acos((c.y - t.y) / c.distanceTo(t)) * 57.3, dist: c.distanceTo(t) }
+})
+console.log(`low and tilted: camera ${clearance.camera.toFixed(1)} m above the ground, target ${clearance.target.toFixed(1)} m, ` +
+            `tilt ${clearance.polar.toFixed(0)}°, distance ${clearance.dist.toFixed(0)} m`)
+if (!(clearance.camera >= 4.9)) fail.push('tilting and zooming in on high ground took the camera underground')
+if (Math.abs(clearance.target) > 1) fail.push('the map target is not on the ground')
+
 await browser.close()
 console.log(fail.length ? `FAILED: ${fail.join('; ')}` : 'ok')
 process.exit(fail.length ? 1 : 0)

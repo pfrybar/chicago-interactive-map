@@ -100,7 +100,9 @@ sources.yaml ──fetch──► data/raw/        downloads, recorded in source
 | [OpenStreetMap](https://www.openstreetmap.org/copyright), via the [Geofabrik](https://download.geofabrik.de/) Illinois extract | Buildings, streets, paths, water, parks | ODbL 1.0 · © OpenStreetMap contributors |
 | [City of Chicago building footprints](https://data.cityofchicago.org/d/syp8-uezg) | Floor counts, year built, names, buildings missing from OSM | City of Chicago Data Portal Terms of Use |
 | [City of Chicago community areas](https://data.cityofchicago.org/d/igwz-8jzy) | Build units and boundaries | City of Chicago Data Portal Terms of Use |
-| [USGS 3DEP lidar, Cook County 2017](https://www.usgs.gov/3d-elevation-program) ([on AWS](https://registry.opendata.aws/usgs-lidar/)) | Building heights, roof shapes, ground elevation | Public domain |
+| [USGS 3DEP lidar, Cook County 2017](https://www.usgs.gov/3d-elevation-program) ([on AWS](https://registry.opendata.aws/usgs-lidar/)) | Building heights, roof shapes, ground elevation, trees, L deck heights, water levels | Public domain |
+| [Cook County 2022 lidar](https://cookcountyil.maps.arcgis.com/apps/instant/lookup/index.html?appid=4b19720be6d0407f8713704b323851a2) (optional, `lidar.source: cook2022`) | The same, five years newer and denser | No access or use restrictions (county metadata) |
+| [Cook County 2025 orthophotos](https://cookcountyil.maps.arcgis.com/apps/instant/lookup/index.html?appid=4b19720be6d0407f8713704b323851a2) | Local checks only (trees, demolished buildings); never published | No redistribution without the county's permission (requested) |
 
 The viewer shows attribution for every source. Google and Apple map content (Street View, Look Around, Google 3D Tiles) is **not** used anywhere, not even as visual reference. Their terms forbid building map data from it. See [AGENTS.md](AGENTS.md#data-sources).
 
@@ -118,9 +120,9 @@ The viewer shows attribution for every source. Google and Apple map content (Str
 | 0 | Repo, Docker pipeline, source manifest, coordinate frame, viewpoint screenshots | Done |
 | 1 | Simple blocks for buildings, streets, water and parks across all 77 areas; map and walk modes; minimap; level of detail | **Done** |
 | 2 | Accurate heights and roof shapes from USGS lidar; real ground elevation; accuracy report | **Done** |
-| 3 | Citywide generators for the L (track, elevated structure, stations) and trees; overrides; first neighborhood-walk pass that checks each area | **In progress:** L, trees and overrides done; agent pass next |
-| 4 | Realistic rendering (materials, windows, reflections, sky; see [`demos/facade-layers.html`](demos/facade-layers.html)); facade recipes from Mapillary and KartaView photos | Planned |
-| 5 | Live L trains, landmark photo captures, an in-app "report a problem" button, iOS and Android apps via Capacitor | Planned |
+| 3 | Citywide generators for the L (track, elevated structure, stations) and trees; overrides; a first verify pass per area from the accuracy report | **In progress:** generators done; verify pass done for the Loop, Near North Side and Near West Side; 2022 lidar being evaluated |
+| 4 | A block-by-block review against street photos (buildings, trees, the L, rendering artifacts); facade recipes from Mapillary and KartaView photos; realistic rendering (materials, windows, reflections, sky; see [`demos/facade-layers.html`](demos/facade-layers.html)) | Planned |
+| 5 | A nightly job that marks areas stale when OSM or city data change; live L trains; landmark photo captures; an in-app "report a problem" button; iOS and Android apps via Capacitor | Planned |
 
 ## Repository layout
 

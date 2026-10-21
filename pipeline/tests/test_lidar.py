@@ -54,3 +54,13 @@ def test_outline_with_few_parts_keeps_the_uncovered_rest():
     rest = outline.difference(part)
     assert rest.area > (1 - PARTS_COVER) * outline.area      # kept, minus the part
     assert shapely.area(outline.difference(box(0, 0, 100, 96))) <= (1 - PARTS_COVER) * outline.area  # dropped
+
+
+def test_block_fingerprint_changes_with_buildings():
+    from cim.lidar import fingerprint
+    a = gpd.GeoDataFrame({"id": ["a", "b"]}, geometry=[box(0, 0, 10, 10), box(20, 0, 30, 10)])
+    assert fingerprint(a) == fingerprint(a.iloc[::-1])                 # order doesn't matter
+    assert fingerprint(a) != fingerprint(a.iloc[:1])                   # a building dropped
+    trimmed = a.copy()
+    trimmed.loc[0, "geometry"] = box(0, 0, 10, 5)
+    assert fingerprint(a) != fingerprint(trimmed)                      # a footprint changed

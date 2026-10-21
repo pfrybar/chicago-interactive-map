@@ -27,7 +27,7 @@ import shapely
 from .config import WORK, load_config
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
-from .lidar import BRIDGE, GROUND, HIGH_NOISE, NOISE, WATER, Dem, block_paths, read_points
+from .lidar import BRIDGE, GROUND, HIGH_NOISE, NOISE, WATER, Dem, block_paths, fingerprint, is_current, read_points
 
 # Workers start from a fresh interpreter instead of forking: a fork shares the parent's
 # memory copy-on-write, and Python's reference counting soon copies all of it (the
@@ -40,6 +40,10 @@ MARGIN = 10.0
 
 def roof_path(key: Key) -> Path:
     return ROOFS / f"{key.i}_{key.j}.npz"
+
+
+def _stamp(key: Key) -> Path:
+    return ROOFS / f"{key.i}_{key.j}.buildings.sha256"
 
 
 def _write_inputs(tmp: Path, key: Key, buildings: gpd.GeoDataFrame, depth: int) -> bool:
@@ -161,7 +165,7 @@ def _roofer(tmp: Path, footprints: gpd.GeoDataFrame, jobs: int, name: str) -> tu
 
 
 def _block_job(args):
-    key, bpath, depth, jobs = args
+    key, bpath, depth, jobs, fp = args
     t0 = time.time()
     buildings = gpd.read_parquet(bpath)
     failed: list[str] = []
@@ -193,6 +197,7 @@ def _block_job(args):
         normals=np.concatenate([models[i][1] for i in ids]).astype(np.float32) if len(ids) else np.zeros((0, 3)),
         indices=np.concatenate([models[i][2] for i in ids]).astype(np.uint32) if len(ids) else np.zeros(0),
     )
+    _stamp(key).write_text(fp)
     return key, len(buildings), len(ids), len(failed), time.time() - t0
 
 
@@ -210,14 +215,15 @@ def run(blocks, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     workers = cfg["roofs"]["workers"]
     threads = cfg["roofs"]["threads_per_block"]
     for key in sorted(blocks):
-        if not force and roof_path(key).exists():
-            continue
         sel = cand[(bi == key.i) & (bj == key.j)]
         if not len(sel):
             continue
+        fp = fingerprint(sel)
+        if not force and is_current(_stamp(key), [roof_path(key)], fp):
+            continue
         path = tmp / f"{key.i}_{key.j}.parquet"
         sel[["id", "base", "height", "cx", "cy", "geometry"]].to_parquet(path)
-        jobs.append((key, path, depth, threads))
+        jobs.append((key, path, depth, threads, fp))
     if not jobs:
         print("  roofs: all blocks up to date")
         return

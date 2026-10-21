@@ -24,7 +24,7 @@ import laspy
 import numpy as np
 import shapely
 
-from .config import WORK, lidar_work, lidar_workers, load_config
+from .config import WORK, lidar_source, lidar_work, load_config
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
 from .lidar import BRIDGE, GROUND, HIGH_NOISE, NOISE, WATER, Dem, block_paths, fingerprint, is_current, read_points
@@ -51,6 +51,11 @@ def _write_inputs(tmp: Path, key: Key, buildings: gpd.GeoDataFrame, depth: int) 
     fx0, fy0, fx1, fy1 = buildings.total_bounds
     grown = (min(x0, fx0) - MARGIN, min(y0, fy0) - MARGIN, max(x1, fx1) + MARGIN, max(y1, fy1) + MARGIN)
     x, y, z, c = read_points(grown, depth)
+    density = load_config()["roofs"].get("cook2022_density")
+    if lidar_source() == "cook2022" and density:
+        # roofer's time and memory grow with the points; it did well with 2017's ~4/m².
+        keep = np.random.default_rng(key.i * 1000 + key.j).random(len(x)) < density / load_config()["lidar"]["cook2022_density"]
+        x, y, z, c = x[keep], y[keep], z[keep], c[keep]
     if not len(x):
         return False
     dem = Dem.load(block_paths(key)[0])
@@ -226,7 +231,9 @@ def run(blocks, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     tmp = WORK / "roofs-tmp"
     tmp.mkdir(parents=True, exist_ok=True)
     jobs = []
-    workers = lidar_workers(cfg["roofs"]["workers"])
+    workers = cfg["roofs"]["workers"]
+    if lidar_source() == "cook2022":
+        workers = min(workers, cfg["roofs"].get("cook2022_workers", 2))
     threads = cfg["roofs"]["threads_per_block"]
     for key in sorted(blocks):
         sel = cand[(bi == key.i) & (bj == key.j)]

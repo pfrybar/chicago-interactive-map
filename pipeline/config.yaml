@@ -35,6 +35,9 @@ tiles:
 roofs:
   workers: 5            # blocks reconstructed at once (each ~3 GB in Python plus ~2 GB in roofer)
   threads_per_block: 4  # roofer jobs within each block
+  cook2022_density: 0   # thin the 2022 points for roofer to this many per m² (0: all 8). At 4/m²,
+                        # 5% of an Old Town block's roofs overshot the lidar by >1 m; at 8, 1.3%
+  cook2022_workers: 3   # blocks at once with the 2022 survey (~6 GB each with roofer)
 
 # Square tiles on a fixed grid anchored 32 km southwest of the origin (see grid.py).
 tile_size: 500

@@ -181,3 +181,11 @@ def test_2017_trees_join_2022_only_where_2022_still_sees_vegetation(monkeypatch)
     assert len(out) == 2                                       # the 2022 tree + the confirmed one
     added = out[out["survey"] != "cook2022"].iloc[0]
     assert added["x"] == 50.0 and added["height"] == 9.0      # 2022's measured height
+
+
+def test_roof_models_rising_above_every_lidar_point_are_rejected():
+    from cim.tiles import roof_fits_lidar
+    pos = np.array([[0, 0, 3.5], [10, 0, 3.5], [10, 0, 8.8]])   # one plane rising to 8.8 m
+    assert not roof_fits_lidar(pos, {"zmax": 6.4})
+    assert roof_fits_lidar(pos, {"zmax": 8.3})                  # within 1 m: a real ridge
+    assert roof_fits_lidar(pos, {"zmax": float("nan")})         # no lidar: keep

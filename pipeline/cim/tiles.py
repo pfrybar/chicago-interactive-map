@@ -334,11 +334,14 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
         tol = _rules(key.level)["tol"]
         mb = mesh.MeshBuilder()
         features = []
-        lod2 = 0
+        lod2 = rejected = 0
         for fid, (_, b) in enumerate(buildings.iterrows()):
             base = float(b["base"])
             model = (roofs.get(b["id"]) if roofs and b["height_source"] == "lidar" and not b.get("flat_roof")
                      else None)
+            if model is not None and not roof_fits_lidar(model[0], b):
+                model = None
+                rejected += 1
             if model is not None:
                 # LoD 2.2 model from roofer: real roof shapes.
                 pos, nrm, idx = model
@@ -361,7 +364,7 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
     return {"uri": uri, "top": top, "bottom": bottom, "bytes": nbytes,
             "triangles": sum(len(m["arrays"]["indices"]) // 3 for m in meshes),
             "buildings": len(buildings), "masses": len(masses),
-            "lod2": lod2 if len(buildings) else 0}
+            "lod2": lod2 if len(buildings) else 0, "lod2_rejected": rejected if len(buildings) else 0}
 
 
 # ---------------------------------------------------------------- block worker
@@ -447,6 +450,24 @@ def _apply_overrides(buildings: gpd.GeoDataFrame, areas: list[int]) -> gpd.GeoDa
         return float(dem.sample(x, y)) if dem is not None else 0.0
     buildings["flat_roof"] = False
     return overrides.apply(buildings, areas, dem_at)
+
+
+ROOF_SLACK = 1.0  # m a roofer model may rise above the highest lidar point on the roof
+
+
+def roof_fits_lidar(pos: np.ndarray, b) -> bool:
+    """False for a roofer model that rises well above anything the lidar measured.
+
+    With few points, roofer sometimes finds only one side of a gabled roof and extends
+    that plane across the building: one-sided slopes up to twice the roof's height
+    (West Ridge: an 11 m wide house with its ridge at 6.2 m drawn rising to 8.8 m). On
+    an Old Town block 23% of models from the 2017 survey rose over 1 m above the highest
+    point, 1.3% with the denser 2022 survey. Those are drawn flat at the lidar height.
+    """
+    top = b.get("zmax")
+    if top is None or not np.isfinite(top):
+        return True
+    return float(pos[:, 2].max()) <= float(top) + ROOF_SLACK
 
 
 def stale_height_tags(b: pd.DataFrame, candidates) -> pd.Series:

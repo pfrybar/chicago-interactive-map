@@ -28,7 +28,7 @@ import shapely
 from pyproj import Transformer
 from scipy import ndimage
 
-from .config import RAW, WORK, load_config, load_sources
+from .config import RAW, WORK, lidar_source, lidar_work, load_config, load_sources
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
 
@@ -38,7 +38,7 @@ from .grid import BLOCK_LEVEL, Key
 _FRESH = multiprocessing.get_context("forkserver")
 
 LIDAR_RAW = RAW / "lidar_cook_2017"
-LIDAR_WORK = WORK / "lidar"
+LIDAR_WORK = lidar_work("lidar")
 DEM_CELL = 2.0
 MARGIN = 40.0  # meters of extra data around each block, so DEMs agree at block seams
 
@@ -124,7 +124,15 @@ def _to_local() -> Transformer:
 
 
 def read_points(bounds_local, depth: int):
-    """Points inside a local-frame box: (x, y, z_local, classification, number_of_returns)."""
+    """Points inside a local-frame box: (x, y, z_local, classification), from the configured survey."""
+    if lidar_source() == "cook2022":
+        from .lidar2022 import read_points as read_2022
+        return read_2022(bounds_local)
+    return _read_ept(bounds_local, depth)
+
+
+def _read_ept(bounds_local, depth: int):
+    """2017 points from the EPT octree, read down to `depth`."""
     x0, y0, x1, y1 = bounds_local
     inv = Transformer.from_crs(local_frame().crs, "EPSG:3857", always_xy=True)
     xs, ys = inv.transform([x0, x1, x0, x1], [y0, y0, y1, y1])
@@ -366,6 +374,9 @@ def _block_job(args):
 def run(blocks: dict, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     """Process every block in `blocks` without current outputs (or all, with force)."""
     LIDAR_WORK.mkdir(parents=True, exist_ok=True)
+    if lidar_source() == "cook2022":
+        from .lidar2022 import fetch_for
+        fetch_for(blocks)
     depth = cfg()["depth"]
     tmp = WORK / "lidar-tmp"
     tmp.mkdir(parents=True, exist_ok=True)
@@ -402,19 +413,24 @@ def load_dem(key: Key) -> Dem | None:
 
 
 def record_lock() -> None:
-    """Record what was read from the survey in sources.lock.json."""
+    """Record what was read from the survey in sources.lock.json (only when it changed)."""
     import hashlib
     from datetime import datetime, timezone
     from .config import LOCK_FILE
-    files = list((LIDAR_RAW / "ept-data").glob("*.laz"))
     lock = json.loads(LOCK_FILE.read_text()) if LOCK_FILE.exists() else {}
-    lock["lidar_cook_2017"] = {
-        "url": load_sources()["lidar_cook_2017"]["url"],
-        "ept_json_sha256": hashlib.sha256((LIDAR_RAW / "ept.json").read_bytes()).hexdigest(),
-        "depth": cfg()["depth"],
-        "nodes_cached": len(files),
-        "bytes": sum(f.stat().st_size for f in files),
-        "retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "license": load_sources()["lidar_cook_2017"]["license"],
-    }
+    if lidar_source() == "cook2022":
+        from .lidar2022 import RAW_2022
+        name, files = "lidar_cook_2022", sorted(RAW_2022.glob("*.laz"))
+        entry = {"url": load_sources()[name]["url"], "density": cfg()["cook2022_density"],
+                 "tiles_cached": len(files), "bytes": sum(f.stat().st_size for f in files)}
+    else:
+        name, files = "lidar_cook_2017", list((LIDAR_RAW / "ept-data").glob("*.laz"))
+        entry = {"url": load_sources()[name]["url"],
+                 "ept_json_sha256": hashlib.sha256((LIDAR_RAW / "ept.json").read_bytes()).hexdigest(),
+                 "depth": cfg()["depth"], "nodes_cached": len(files), "bytes": sum(f.stat().st_size for f in files)}
+    old = {k: v for k, v in lock.get(name, {}).items() if k not in ("retrieved_at", "license")}
+    if old == entry:
+        return
+    lock[name] = entry | {"retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                          "license": load_sources()[name]["license"]}
     LOCK_FILE.write_text(json.dumps(dict(sorted(lock.items())), indent=2) + "\n")

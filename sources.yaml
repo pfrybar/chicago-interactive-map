@@ -41,6 +41,38 @@ lidar_cook_2017:
   attribution: U.S. Geological Survey 3DEP
   homepage: https://www.usgs.gov/3d-elevation-program
 
+lidar_cook_2022:
+  description: >
+    Cook County 2022 lidar (flown April 5 to June 29, 2022, leaf-off; QL1, 20+ points/m²,
+    18 classes including building, rail, bridge deck and overhead structure). One LAS
+    file per 2,500 ft county tile, about 1.8 GB each. `python -m cim lidar-fetch`
+    downloads a tile, keeps a thinned copy in local meters as LAZ, and deletes the
+    original. The tile index comes from the county's Imagery Tile Downloader.
+  url: https://maps.cookcountyil.gov/lidar_2022/{tile}.las
+  index: https://services2.arcgis.com/I5Or36sMcO7Y9vQ3/arcgis/rest/services/tiles_mod/FeatureServer/0
+  file: "{tile}.laz"
+  license: >
+    Cook County metadata (CookCounty_2022_Classified_LAS): "Access_Constraints: No
+    restrictions apply to these data. Use_Constraints: None."
+  attribution: Cook County GIS
+  homepage: https://cookcountyil.maps.arcgis.com/apps/instant/lookup/index.html?appid=4b19720be6d0407f8713704b323851a2
+
+cook_ortho_2025:
+  description: >
+    Cook County 2025 orthophotos (flown March 13 to May 12, 2025; 6-inch; red, green,
+    blue and near-infrared). Used only to check the map (`python -m cim ortho`); never
+    committed, published or shown in pull requests. See the license note.
+  url: https://gis.cookcountyil.gov/imagery/rest/services/CookOrtho2025/ImageServer
+  file: "{tile}.tif"
+  license: >
+    Cook County metadata (CookCounty_Digital_Orthos_2025): "Under no circumstances may
+    the data be redistributed or made available over a network without explicit
+    permission from the Cook County Bureau of Technology." Permission requested
+    2026-10-21. Until it's granted, use it only locally, and tag anything derived from
+    it with `evidence: cook_ortho_2025` so it can be removed.
+  attribution: Cook County GIS
+  homepage: https://cookcountyil.maps.arcgis.com/apps/instant/lookup/index.html?appid=4b19720be6d0407f8713704b323851a2
+
 mapillary:
   description: >
     Street-level photos, used only to check buildings during the verify pass (not as

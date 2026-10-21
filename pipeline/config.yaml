@@ -19,7 +19,11 @@ ground_datum: 181.0
 water_level: 176.5
 
 lidar:
+  source: ept2017   # ept2017 (USGS 2017 EPT) or cook2022 (Cook County 2022 tiles); env CIM_LIDAR_SOURCE overrides
   depth: 9        # EPT octree depth to read; 9 is about 4 points/m², 10 is the full ~22
+  cook2022_density: 8   # points/m² kept from each 2022 county tile (the files have ~100)
+  cook2022_keep_las: false  # keep the 1.8 GB originals after converting (for debugging)
+  cook2022_downloads: 4    # county tiles downloaded and converted at once (~1 GB of memory each)
   workers: 8      # blocks processed at once (each holds ~10M points, ~2-3 GB, in memory)
   min_density: 0.5  # points/m² inside a footprint needed to trust a lidar height
 

@@ -18,14 +18,14 @@ import shapely
 from scipy import ndimage
 
 from . import mesh
-from .config import WORK, load_config
+from .config import lidar_work, load_config
 from .grid import Key
 from .lidar import block_paths, load_dem, read_points
 from .osm import load_features
 
 _FRESH = multiprocessing.get_context("forkserver")
 
-TREES = WORK / "trees"
+TREES = lidar_work("trees")
 VEGETATION = (3, 4, 5)
 CELL = 1.0
 MIN_HEIGHT = 3.0

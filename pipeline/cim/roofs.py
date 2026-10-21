@@ -24,7 +24,7 @@ import laspy
 import numpy as np
 import shapely
 
-from .config import WORK, load_config
+from .config import WORK, lidar_work, load_config
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
 from .lidar import BRIDGE, GROUND, HIGH_NOISE, NOISE, WATER, Dem, block_paths, fingerprint, is_current, read_points
@@ -34,7 +34,7 @@ from .lidar import BRIDGE, GROUND, HIGH_NOISE, NOISE, WATER, Dem, block_paths, f
 # parent holds every building in the city), multiplying memory by the worker count.
 _FRESH = multiprocessing.get_context("forkserver")
 
-ROOFS = WORK / "roofs"
+ROOFS = lidar_work("roofs")
 MARGIN = 10.0
 
 

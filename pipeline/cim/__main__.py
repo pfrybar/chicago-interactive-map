@@ -35,6 +35,10 @@ def main() -> None:
     tr.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
     tr.add_argument("--force", action="store_true", help="redo blocks that already have outputs")
 
+    lf = sub.add_parser("lidar-fetch", help="download and thin the Cook County 2022 lidar tiles some areas need")
+    lf.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
+    lf.add_argument("--jobs", type=int, help="tiles at once (default lidar.cook2022_downloads)")
+
     im = sub.add_parser("images", help="street-level photos near a point (Mapillary, KartaView)")
     im.add_argument("--at", help="local x,y in meters")
     im.add_argument("--radius", type=float, default=60.0)
@@ -72,6 +76,12 @@ def main() -> None:
         blocks = {leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}
         lidar.run(blocks, load_buildings(areas), a.force)
         lidar.record_lock()
+    elif a.cmd == "lidar-fetch":
+        from .grid import BLOCK_LEVEL
+        from .lidar2022 import fetch_for
+        from .tiles import build_leaves
+        areas = list(range(1, 78)) if a.areas == "all" else [int(x) for x in a.areas.split(",")]
+        fetch_for({leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}, a.jobs)
     elif a.cmd == "roofs":
         from . import roofs
         from .grid import BLOCK_LEVEL

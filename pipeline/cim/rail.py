@@ -20,14 +20,14 @@ import shapely
 from shapely.geometry import LineString, box
 
 from . import mesh
-from .config import WORK, load_config
+from .config import lidar_work, load_config
 from .grid import Key
 from .lidar import GROUND, HIGH_NOISE, NOISE, WATER, Dem, block_paths, load_dem, read_points
 from .osm import load_features
 
 _FRESH = multiprocessing.get_context("forkserver")
 
-RAIL = WORK / "rail"
+RAIL = lidar_work("rail")
 SAMPLE = 4.0          # meters between profile samples and mesh segments
 GAUGE = 1.435         # standard gauge
 COLUMN_SPACING = 13.0 # L columns

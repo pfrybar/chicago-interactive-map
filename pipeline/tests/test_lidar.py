@@ -73,3 +73,14 @@ def test_city_footprints_on_bare_ground_are_gone():
                       "year_built": [1958, 2019, 1958, 1958]})
     density = pd.Series([0.0, 0.0, 3.0, 0.0])
     assert gone_city_footprints(b, density).tolist() == [True, False, False, False]
+
+
+def test_crown_cells_separates_trees_from_poles():
+    from cim.trees import MIN_CROWN_CELLS, crown_cells
+    raw = np.zeros((20, 20), np.float32)
+    raw[5, 5] = 9.0                              # a light pole: one tall cell
+    yy, xx = np.mgrid[0:20, 0:20]
+    raw[(yy - 13) ** 2 + (xx - 13) ** 2 <= 9] = 8.0   # a crown 6 m across
+    raw[13, 13] = 10.0
+    c = crown_cells(raw, np.array([5, 13]), np.array([5, 13]), np.array([9.0, 10.0]))
+    assert c[0] < MIN_CROWN_CELLS <= c[1]

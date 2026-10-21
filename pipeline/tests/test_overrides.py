@@ -36,3 +36,15 @@ def test_entries_need_a_reason(tmp_path, monkeypatch):
     (tmp_path / "32.yaml").write_text("buildings:\n  chi:1: {height: 12}\n")
     with pytest.raises(overrides.OverrideError):
         overrides.load(32)
+
+
+def test_min_height_moves_a_floating_part_and_must_stay_below_the_top(tmp_path, monkeypatch):
+    monkeypatch.setattr(overrides, "OVERRIDES", tmp_path)
+    b = _buildings().assign(min_height=[90.0, 0.0])
+    (tmp_path / "33.yaml").write_text("buildings:\n  chi:1:\n    height: 30.5\n    min_height: 28\n    reason: feet as meters\n"
+                                      "  chi:2:\n    height: 12\n    reason: lower\n")
+    out = overrides.apply(b, [33], lambda x, y: 0.0).set_index("id")
+    assert (out.loc["chi:1", "min_height"], out.loc["chi:1", "height"]) == (28.0, 30.5)
+    (tmp_path / "33.yaml").write_text("buildings:\n  chi:1:\n    height: 30\n    min_height: 31\n    reason: bad\n")
+    with pytest.raises(overrides.OverrideError):
+        overrides.load(33)

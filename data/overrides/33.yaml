@@ -1,0 +1,17 @@
+# Near South Side (33). Fixes from the visual audit (2026-10-21); the area's verify pass is still to come.
+buildings:
+  osm:w1025043591:
+    height: 29.9
+    min_height: 27.4
+    reason: >
+      McCormick Place Lakeside Center's cantilevered roof. OSM says height=100,
+      min_height=90, probably feet (30.5 / 27.4 m); the 2017 lidar measures the roof top
+      at 29.9 m. Found by the visual audit.
+    evidence: mapillary:1250387419400528
+  osm:w1025043590:
+    height: 27.4
+    reason: >
+      Lakeside Center's hall, under the roof slab above. OSM's height=100 is probably
+      feet; the lidar sees the roof over it at 29.1 m.
+    evidence: mapillary:1250387419400528
+add: []

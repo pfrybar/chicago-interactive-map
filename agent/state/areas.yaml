@@ -306,9 +306,27 @@
       status: done
       at: '2026-10-20'
     verify:
-      status: todo
+      status: needs_review
+      at: '2026-10-21'
+      branch: agent/verify-28
   stale: false
-  notes: []
+  notes:
+  - 'osm:w1039763412 (Small Cheval pavilion): lidar reads 150 N Riverside''s cantilever above it; overridden to one storey.
+    The cantilevered floors of 150 N Riverside aren''t mapped (unmapped clusters at (-922,345) and (-941,492)); a mapper
+    could add them as a building:part with min_height.'
+  - 'osm:w1280976239 (Union Station concourse part, 4 levels): lidar median 41 m, top 125 m, because 222 S Riverside stands
+    over part of it. Kept the lidar height for now; splitting the part in OSM would fix it.'
+  - 'chi:891261 (w545331609, a 220 m2 terrace): the city record says 163 m (wrong); lidar 13.5 m is used.'
+  - 'Alta at K Station: its towers are mapped as parts, so the outline rest is the podium (lidar median 30 m). Working as intended.'
+  - 'Built after the 2017 lidar, OSM heights confirmed: Avra West Loop (20 fl, 2021), Westhaven Park Station (12 fl, 2025),
+    Cassidy on Canal (33 fl, 2024). Not individually confirmed but consistent with the Fulton Market boom: Sage West Loop,
+    The Elizabeth, Arthur on Aberdeen, Flora, 333 North Green, Union West, 345 N Morgan, One Six Six, Porte, 167 Green
+    Street, The Hoxton, and four unnamed towers at (-1687,560).'
+  - 'chi:353858#1 (w1243567408, 12 levels, city year 1971, lidar 12 m) is kept at 42 m by the newer-than-lidar rule; the
+    1971 date suggests OSM''s levels are wrong. No photo faces it; a person should check.'
+  - 'Largest unmapped lidar clusters in the Medical District ((-3860,-933), (-4419,-1574)) are open ground in 2026 photos
+    (mapillary:2269589143879173, mapillary:2176028156513162): demolished after 2017. No change.'
+  - 'No-lidar-returns buildings around (-4100,-1000) are post-2017 Medical District and UIC buildings; they keep OSM heights.'
 29:
   name: North Lawndale
   passes:

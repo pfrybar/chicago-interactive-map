@@ -88,7 +88,7 @@ Citywide systems (the L, tree generation, materials) are built as generators tha
 - Memory: each lidar worker holds about 2–3 GB; each roofs worker about 3 GB plus its roofer process (roofer's memory grows with the area it covers, so it runs per 1 km quadrant); each tile worker about 1–2 GB. The defaults in `pipeline/config.yaml` fit 32 GB. Don't run a second pipeline job while a citywide step is running. Worker pools use `forkserver` (see `_FRESH`): forked workers would copy the parent's memory.
 - `np.load` on an `.npz` decompresses the whole array on every `d["key"]` access. Read each array once into a variable before looping (see `roofs.load`).
 - If a build is killed, Snakemake leaves a lock: run `docker compose run --rm pipeline snakemake -s pipeline/Snakefile -d . --cores 1 --unlock`.
-- roofer is GPL-3.0 and runs as a subprocess from the release binary (Debian trixie image; it needs glibc 2.38+). It rejects custom coordinate systems, so don't pass `--srs`. It reads the CRS from the footprints GeoPackage, and the points are in the same local meters.
+- roofer is GPL-3.0 and runs as a subprocess from the release binary (Debian trixie image; it needs glibc 2.38+). It rejects custom coordinate systems, so don't pass `--srs`. It sometimes crashes on a footprint or spins on one forever; `_roofer` treats both (a timeout scaled to the number of footprints) as failures and bisects, and those buildings keep a plain extrusion. It reads the CRS from the footprints GeoPackage, and the points are in the same local meters.
 
 ## The L, trees and overrides
 

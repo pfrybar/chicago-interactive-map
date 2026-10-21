@@ -136,11 +136,18 @@ def _read_cityjson(outdir: Path) -> dict[str, tuple]:
     return {k: (np.concatenate(p), np.concatenate(n), np.concatenate(i)) for k, (p, n, i) in out.items() if p}
 
 
+def _timeout(n: int) -> float:
+    """Seconds to allow roofer for `n` footprints, well above its normal pace (a few ms each)."""
+    return 120 + 0.3 * n
+
+
 def _roofer(tmp: Path, footprints: gpd.GeoDataFrame, jobs: int, name: str) -> tuple[dict, list[str]]:
     """Run roofer on `footprints`; if it fails, split them in half and retry each half.
 
-    roofer occasionally crashes on a particular footprint. Bisecting isolates those,
-    so the rest of the block still gets roofs. Returns (models, ids roofer couldn't do).
+    roofer occasionally crashes on a particular footprint, or spins on one forever
+    (one core busy, memory flat), so a run that takes too long counts as a failure.
+    Bisecting isolates those, so the rest of the block still gets roofs. Returns
+    (models, ids roofer couldn't do).
     """
     run_dir = tmp / name
     run_dir.mkdir()
@@ -150,8 +157,13 @@ def _roofer(tmp: Path, footprints: gpd.GeoDataFrame, jobs: int, name: str) -> tu
     cmd = ["roofer", "-j", str(jobs), "--id-attribute", "id", "--h-roof-attribute", "roof",
            "--lod22", str(tmp / "points.laz"), str(run_dir / "footprints.gpkg"), str(run_dir / "out")]
     env = {**os.environ, "GDAL_DATA": "/opt/roofer/share/gdal", "PROJ_DATA": "/opt/roofer/share/proj"}
-    r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=run_dir)  # it writes a log to cwd
-    if r.returncode == 0:
+    try:
+        r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=run_dir,  # it writes a log to cwd
+                           timeout=_timeout(len(footprints)))
+        ok = r.returncode == 0
+    except subprocess.TimeoutExpired:  # run() kills it
+        ok = False
+    if ok:
         models = _read_cityjson(run_dir / "out")
         shutil.rmtree(run_dir)
         return models, []
@@ -237,7 +249,7 @@ def run(blocks, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
             crashed += nf
             if n % 5 == 0 or n == len(jobs):
                 print(f"    {n}/{len(jobs)} blocks, {made:,} of {done:,} buildings reconstructed "
-                      f"({crashed} skipped after roofer crashes), {time.time() - t0:.0f}s (last block {secs:.0f}s)",
+                      f"({crashed} skipped after roofer crashes or hangs), {time.time() - t0:.0f}s (last block {secs:.0f}s)",
                       flush=True)
     shutil.rmtree(tmp, ignore_errors=True)
 

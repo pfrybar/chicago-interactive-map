@@ -447,6 +447,16 @@ def _apply_overrides(buildings: gpd.GeoDataFrame, areas: list[int]) -> gpd.GeoDa
     return overrides.apply(buildings, areas, dem_at)
 
 
+def gone_city_footprints(b: pd.DataFrame, density: pd.Series) -> pd.Series:
+    """City footprints that OSM doesn't have, where the lidar sees bare ground.
+
+    The city's data keeps some demolished buildings (Cabrini-Green). Ones the city
+    dates 2017 or later may be newer than the survey, so they stay.
+    """
+    bare = (b["fp_area"] > 100) & (density < 0.05)
+    return (b["kind"] == "city") & bare & ~(b["year_built"].fillna(0) >= 2017)
+
+
 def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
     """Replace heights with lidar where it can be trusted, and set each building's ground level.
 
@@ -479,6 +489,11 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
 
     density = b["n"].fillna(0) / b["fp_area"].clip(lower=1)
     lidar_h = b["p95"] - b["base_min"]
+    # A podium left around a tower mapped as a part (has_parts) also catches tower points
+    # wherever the part is drawn smaller than the tower, so its top 5% is the tower
+    # (Lake Point Tower's podium read 188 m). The podium covers most of it: use the median.
+    podium = b["has_parts"].fillna(False).astype(bool) if "has_parts" in b else pd.Series(False, b.index)
+    lidar_h = lidar_h.where(~podium, b["p50"] - b["base_min"])
     # Towers finished after the spring 2017 survey: lidar measured what stood there
     # before (110 North Wacker reads 34 m, not 249 m). When lidar is under half of a
     # mapped OSM height of 40 m or more, keep the mapping. (City floor counts are the
@@ -487,9 +502,11 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
            & (b["min_height"] < 0.5)
            & (overlap <= 0.1)
            & ~((b["kind"] == "part") & (b["source_prev"] == "osm:height")))
+    # Not for podiums left around a tower mapped as a part (has_parts, see buildings.py).
     b["newer_than_lidar"] = (use & b["source_prev"].isin(["osm:height", "osm:levels"]) & (b["height_prev"] >= 40)
-                             & (lidar_h < 0.5 * b["height_prev"]))
+                             & (lidar_h < 0.5 * b["height_prev"]) & ~podium)
     use &= ~b["newer_than_lidar"]
+    b["gone"] = gone_city_footprints(b, density)
     b.loc[use, "height"] = lidar_h[use].round(2)
     b.loc[use, "height_source"] = "lidar"
     b["base"] = b["base_min"].fillna(0.0)
@@ -510,6 +527,8 @@ def build(areas: list[int], build_name: str) -> dict:
     buildings = load_buildings(areas)
     buildings = apply_lidar(buildings, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves})
     buildings = _apply_overrides(buildings, areas)
+    everything = buildings  # for the accuracy report
+    buildings = buildings[~buildings["gone"].fillna(False).astype(bool)]
 
     # Split buildings by block so each worker reads only its own.
     tmp = WORK / "tiles-tmp" / build_name
@@ -614,7 +633,7 @@ def build(areas: list[int], build_name: str) -> dict:
         "sources": json.loads(LOCK_FILE.read_text()) if LOCK_FILE.exists() else {},
     }
     from .accuracy import report as accuracy_report
-    accuracy = accuracy_report(buildings, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves}, out_dir / "accuracy.json")
+    accuracy = accuracy_report(everything, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves}, out_dir / "accuracy.json")
     report["accuracy"] = accuracy["overall"]
     (out_dir / "report.json").write_text(json.dumps(report, indent=2))
     (out_dir / "attribution.json").write_text(json.dumps(_attribution(), indent=2))

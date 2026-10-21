@@ -52,13 +52,14 @@ def build(area: int) -> gpd.GeoDataFrame:
     # its parts cover most of it; otherwise what the parts don't cover stays.
     parent: dict = {}
     parent_name: dict = {}
+    trimmed: dict = {}
     if len(parts):
         pts = gpd.GeoDataFrame(geometry=parts.geometry.representative_point(), crs=parts.crs)
         hit = gpd.sjoin(pts, outlines[["geometry"]], predicate="within", how="inner")
         parent = hit.groupby(level=0)["index_right"].first().to_dict()
         names = outlines["name"]
         parent_name = {k: names.get(v) for k, v in parent.items()}
-        drop, trimmed = [], {}
+        drop = []
         for oidx, part_idx in hit.groupby("index_right").groups.items():
             outline = outlines.geometry.loc[oidx]
             covered = shapely.union_all(parts.loc[list(set(part_idx))].geometry.values)
@@ -100,6 +101,8 @@ def build(area: int) -> gpd.GeoDataFrame:
                 "min_height": round(mh, 2),
                 "height_source": src,
                 "year_built": _year(city_rec["year_built"]) if city_rec is not None else None,
+                "has_parts": False,
+                "_outline": idx if kind == "outline" else parent.get(idx),
                 "geometry": r.geometry,
             })
 
@@ -116,10 +119,18 @@ def build(area: int) -> gpd.GeoDataFrame:
             rows.append({
                 "id": f"chi:{r['bldg_id']}", "osm_id": None, "kind": "city",
                 "name": r["bldg_name1"] or None, "height": round(h, 2), "min_height": 0.0,
-                "height_source": src, "year_built": _year(r["year_built"]), "geometry": r.geometry,
+                "height_source": src, "year_built": _year(r["year_built"]), "has_parts": False,
+                "_outline": None, "geometry": r.geometry,
             })
 
     out = gpd.GeoDataFrame(rows, geometry="geometry", crs=local_frame().crs)
+    # has_parts: the rest of an outline whose tower is one of its mapped parts (a part
+    # reaches 90% of the outline's height). Its height tags describe that tower, so the
+    # lidar's lower reading of the rest is the podium, not a building newer than the survey.
+    is_rest = (out["kind"] == "outline") & out["_outline"].isin(list(trimmed))
+    tallest = out[out["kind"] == "part"].groupby("_outline")["height"].max()
+    out["has_parts"] = is_rest & (out["_outline"].map(tallest).fillna(0) >= 0.9 * out["height"])
+    out = out.drop(columns="_outline")
     # Keep buildings whose center is inside this community area.
     inside = out.geometry.representative_point().within(boundary)
     out = out[inside].reset_index(drop=True)

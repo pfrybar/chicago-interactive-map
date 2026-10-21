@@ -9,7 +9,9 @@ Per block this writes, under data/work/lidar/:
   <i>_<j>.dem.npz       ground elevation (bare earth plus bridge decks), 2 m grid
   <i>_<j>.roofs.parquet lidar statistics for every building whose center is in the block
   <i>_<j>.unmapped.parquet  clusters of building-class points with no footprint
+  <i>_<j>.buildings.sha256  fingerprint of the buildings the statistics were made for
 """
+import hashlib
 import io
 import json
 import time
@@ -309,8 +311,28 @@ def block_paths(key: Key):
             LIDAR_WORK / f"{stem}.unmapped.parquet")
 
 
+def fingerprint(buildings: gpd.GeoDataFrame) -> str:
+    """Hash of a block's building ids and footprints.
+
+    Cached block outputs are only valid for the buildings they were made from: when
+    a building rule changes which outlines exist or their shapes, the block reruns.
+    """
+    h = hashlib.sha256()
+    for bid, wkb in sorted(zip(buildings["id"].astype(str), shapely.to_wkb(buildings.geometry.values))):
+        h.update(bid.encode() + b"\0" + wkb)
+    return h.hexdigest()
+
+
+def is_current(stamp, outputs, fp: str) -> bool:
+    return all(p.exists() for p in outputs) and stamp.exists() and stamp.read_text() == fp
+
+
+def _stamp(key: Key):
+    return LIDAR_WORK / f"{key.i}_{key.j}.buildings.sha256"
+
+
 def _block_job(args):
-    key, bpath, depth = args
+    key, bpath, depth, fp = args
     t0 = time.time()
     x0, y0, x1, y1 = key.bounds
     grown = (x0 - MARGIN, y0 - MARGIN, x1 + MARGIN, y1 + MARGIN)
@@ -337,11 +359,12 @@ def _block_job(args):
     dem.save(dem_path)
     roofs.to_parquet(roofs_path)
     gaps.to_parquet(gaps_path)
+    _stamp(key).write_text(fp)
     return key, len(x), time.time() - t0
 
 
 def run(blocks: dict, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
-    """Process every block in `blocks` that doesn't have outputs yet (or all, with force)."""
+    """Process every block in `blocks` without current outputs (or all, with force)."""
     LIDAR_WORK.mkdir(parents=True, exist_ok=True)
     depth = cfg()["depth"]
     tmp = WORK / "lidar-tmp"
@@ -350,14 +373,15 @@ def run(blocks: dict, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     bi, bj = grid_index(buildings["cx"].values, buildings["cy"].values, BLOCK_LEVEL)
     jobs = []
     for key in sorted(blocks):
-        if not force and all(p.exists() for p in block_paths(key)):
-            continue
         sel = buildings[(bi == key.i) & (bj == key.j)][["id", "geometry"]]
+        fp = fingerprint(sel)
+        if not force and is_current(_stamp(key), block_paths(key), fp):
+            continue
         path = None
         if len(sel):
             path = tmp / f"{key.i}_{key.j}.parquet"
             sel.to_parquet(path)
-        jobs.append((key, path, depth))
+        jobs.append((key, path, depth, fp))
     if not jobs:
         print("  lidar: all blocks up to date")
         return

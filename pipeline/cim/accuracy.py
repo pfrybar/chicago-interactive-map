@@ -41,6 +41,7 @@ def report(buildings: pd.DataFrame, blocks, out_path) -> dict:
             "previous_vs_lidar": {src: _summary(diff[lid["source_prev"] == src])
                                   for src in sorted(lid["source_prev"].dropna().unique())},
             "no_lidar_returns": int(len(empty)),
+            "kept_mapped_newer_than_lidar": int(b.get("newer_than_lidar", pd.Series(dtype=bool)).sum()),
             "unmapped_clusters": int(len(gaps)),
             "unmapped_area_m2": round(float(gaps["area"].sum()), 0),
         },
@@ -66,6 +67,11 @@ def report(buildings: pd.DataFrame, blocks, out_path) -> dict:
                  "lidar_m": round(float(r.height), 1), "osm": r.osm_id if isinstance(r.osm_id, str) else None,
                  "at": [round(float(r.cx)), round(float(r.cy))]}
                 for r in worst.head(TOP).itertuples()],
+            "kept_mapped_newer_than_lidar": [
+                {"id": r.id, "name": r.name if isinstance(r.name, str) else None, "mapped_m": round(float(r.height), 1),
+                 "source": r.height_source, "osm": r.osm_id if isinstance(r.osm_id, str) else None,
+                 "at": [round(float(r.cx)), round(float(r.cy))]}
+                for r in ab[ab.get("newer_than_lidar", False) == True].itertuples()],  # noqa: E712
             "no_lidar_returns": [
                 {"id": r.id, "osm": r.osm_id if isinstance(r.osm_id, str) else None,
                  "area_m2": round(float(r.fp_area)), "at": [round(float(r.cx)), round(float(r.cy))]}

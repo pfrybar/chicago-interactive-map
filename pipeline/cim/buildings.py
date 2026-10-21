@@ -1,6 +1,7 @@
 """Buildings for one community area: OSM footprints joined with City of Chicago attributes."""
 import geopandas as gpd
 import pandas as pd
+import shapely
 
 from . import heights
 from .areas import area_polygon_local
@@ -10,6 +11,7 @@ from .osm import load_features
 from .sources import raw_path
 
 POLY = ("Polygon", "MultiPolygon")
+PARTS_COVER = 0.9  # parts covering at least this share of an outline replace it
 
 
 def _polygons(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -34,25 +36,45 @@ def build(area: int) -> gpd.GeoDataFrame:
 
     underground = feats["location"].isin(["underground", "underwater"])
     is_part = feats["building:part"].notna() & (feats["building:part"] != "no")
-    is_outline = feats["building"].notna() & (feats["building"] != "no") & ~is_part
-    outlines = _polygons(feats[is_outline & ~underground])
-    parts = _polygons(feats[is_part & ~underground])
+    # Construction sites aren't buildings yet (OSM's building=construction).
+    is_outline = feats["building"].notna() & ~feats["building"].isin(["no", "construction"]) & ~is_part
+    # Unique indexes: exploded multipolygons repeat their source row's label.
+    outlines = _polygons(feats[is_outline & ~underground]).reset_index(drop=True)
+    parts = _polygons(feats[is_part & ~underground]).reset_index(drop=True)
 
     city = _load_city(area)
     match = _match_city(outlines, city)
     osm_city_ids = {rec["bldg_id"] for rec in match.values()}
 
-    # Simple 3D Buildings rule: an outline that contains parts is drawn by its parts.
-    # The parts inherit the outline's name and city record.
+    # Simple 3D Buildings rule: an outline that contains parts is drawn by its parts,
+    # and the parts inherit the outline's name and city record. Mappers often draw
+    # only a few parts (the Art Institute has two), so an outline is dropped only when
+    # its parts cover most of it; otherwise what the parts don't cover stays.
     parent: dict = {}
     parent_name: dict = {}
     if len(parts):
         pts = gpd.GeoDataFrame(geometry=parts.geometry.representative_point(), crs=parts.crs)
         hit = gpd.sjoin(pts, outlines[["geometry"]], predicate="within", how="inner")
-        parent = hit["index_right"].groupby(level=0).first().to_dict()
-        names = outlines["name"].groupby(level=0).first()
+        parent = hit.groupby(level=0)["index_right"].first().to_dict()
+        names = outlines["name"]
         parent_name = {k: names.get(v) for k, v in parent.items()}
-        outlines = outlines[~outlines.index.isin(hit["index_right"].unique())]
+        drop, trimmed = [], {}
+        for oidx, part_idx in hit.groupby("index_right").groups.items():
+            outline = outlines.geometry.loc[oidx]
+            covered = shapely.union_all(parts.loc[list(set(part_idx))].geometry.values)
+            rest = shapely.make_valid(outline.difference(covered))
+            if rest.area <= (1 - PARTS_COVER) * outline.area:
+                drop.append(oidx)
+            else:
+                trimmed[oidx] = rest
+        outlines = outlines[~outlines.index.isin(drop)].copy()
+        for oidx, rest in trimmed.items():
+            if oidx in outlines.index:
+                polys = [g for g in getattr(rest, "geoms", [rest]) if g.geom_type == "Polygon" and g.area > 1]
+                if polys:
+                    outlines.loc[oidx, "geometry"] = shapely.MultiPolygon(polys) if len(polys) > 1 else polys[0]
+                else:
+                    outlines = outlines.drop(index=oidx)
 
     rows = []
     for kind, gdf in (("outline", outlines), ("part", parts)):
@@ -65,6 +87,10 @@ def build(area: int) -> gpd.GeoDataFrame:
             # A part's height comes from its own tags; the outline's floor count covers the whole building.
             stories = city_rec["stories"] if city_rec is not None and kind == "outline" else None
             h, mh, src = heights.resolve(tags, stories, r.geometry.area)
+            if (tags.get("building") == "roof" or tags.get("building:part") == "roof") and mh < h - 1.0:
+                # A roof without walls (canopy, shelter): draw a 1 m slab at the top. Being
+                # off the ground also keeps lidar from giving it the height of what's above.
+                mh = h - 1.0
             rows.append({
                 "id": f"chi:{cid}" if city_rec is not None and kind == "outline" else f"osm:{r['osm_id']}",
                 "osm_id": r["osm_id"],

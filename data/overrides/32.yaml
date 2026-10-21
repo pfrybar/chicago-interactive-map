@@ -1,0 +1,27 @@
+# Loop (32). Fixes from the first verify pass (2026-10-21); see agent/state/areas.yaml.
+buildings:
+  osm:w1176285166:
+    height: 249
+    reason: >
+      110 North Wacker, completed 2020 after the 2017 lidar. OSM's 55 floors x 3.5 m
+      gives 192 m; the roof is at 249 m.
+    evidence: "https://www.skyscrapercenter.com/building/110-north-wacker/28315 (249 m)"
+  osm:w764177822:
+    height: 1.2
+    reason: >
+      Millennium Park garage air vent (OSM man_made=air_vent). Lidar sees nothing above
+      1.5 m over it; the vents are low curbed grates, not 8 m blocks.
+    evidence: mapillary:835492820396224
+  osm:w764177816:
+    height: 1.2
+    reason: Millennium Park garage air vent; same as osm:w764177822.
+    evidence: mapillary:835492820396224
+  osm:w317693515:
+    height: 1.2
+    reason: Millennium Park garage air vent; same as osm:w764177822.
+    evidence: mapillary:835492820396224
+  osm:w317693513:
+    height: 1.2
+    reason: Millennium Park garage air vent; same as osm:w764177822.
+    evidence: mapillary:835492820396224
+add: []

@@ -3,14 +3,15 @@ import type { MapControls } from 'three/addons/controls/MapControls.js'
 
 /**
  * Map-mode touch gestures, like phone map apps:
- * - one finger drags the map (the ground under the finger stays under it)
+ * - one finger drags the map at a constant rate: the same finger movement moves the map
+ *   the same distance anywhere on the screen (set by the view distance), so dragging near
+ *   the horizon of a tilted view doesn't race; momentum covers long distances
  * - two fingers pinch to zoom, twist to turn and move together to pan, all around the
  *   building or ground between them, which stays put
  * - two fingers sliding up or down together tilt the view
  * - a flick keeps the map gliding after the fingers lift, slowing like iOS scrolling
  * MapControls still handles the mouse.
  */
-const REACH = 3  // how far a drag can grab the ground, in camera-to-target distances
 const GLIDE_PAN_MS = 325   // time constant of the pan glide's slowdown (iOS scroll views use about this)
 const GLIDE_TURN_MS = 200  // twist and pinch glide for less time
 const LIFT_MS = 60         // a finger still moving this recently when lifted starts a glide
@@ -20,7 +21,7 @@ export class TouchMap {
   private ray = new Raycaster()
   private plane = new Plane(new Vector3(0, 1, 0), 0)
   private pivot = new Vector3()
-  private grab = new Vector3()        // one finger: the ground point being dragged
+  private last = new Vector2()        // one finger: where it was at the last event
   private prev: { mid: Vector2; dist: number; angle: number } | null = null
   private start: { mid: Vector2; dist: number; angle: number; p: Vector2[] } | null = null
   private tilting: boolean | null = null  // decided on the first real movement of a two-finger gesture
@@ -71,15 +72,12 @@ export class TouchMap {
     this.prev = this.start = null
     this.tilting = null
     if (p.length === 1) {
-      this.groundPoint(p[0], this.grab)
-      this.plane.constant = -this.grab.y
-      this.onPlane(p[0], this.grab)  // far hits (a tower on the horizon) are capped the same way
+      this.last.copy(p[0])
     } else if (p.length >= 2) {
       const g = this.shape(p[0], p[1])
       this.prev = g
       this.start = { ...g, mid: g.mid.clone(), p: [p[0].clone(), p[1].clone()] }
       this.groundPoint(g.mid, this.pivot)
-      this.plane.constant = -this.pivot.y
     }
   }
 
@@ -89,7 +87,8 @@ export class TouchMap {
     pt.set(e.clientX, e.clientY)
     const p = [...this.pointers.values()]
     if (p.length === 1) {
-      const d = this.grab.clone().sub(this.onPlane(p[0], new Vector3()))
+      const d = this.screenToGround(p[0].x - this.last.x, p[0].y - this.last.y)
+      this.last.copy(p[0])
       this.translate(d)
       this.sample(d, 0, 0, e.timeStamp)
     } else if (p.length >= 2 && this.prev && this.start) {
@@ -98,9 +97,9 @@ export class TouchMap {
       if (this.tilting === true) {
         this.tilt((g.mid.y - this.prev.mid.y) / this.dom.clientHeight)
       } else if (this.tilting === false) {
-        const d = this.onPlane(this.prev.mid, new Vector3()).sub(this.onPlane(g.mid, new Vector3()))
+        const d = this.screenToGround(g.mid.x - this.prev.mid.x, g.mid.y - this.prev.mid.y)
         this.translate(d)
-        this.onPlane(g.mid, this.pivot)
+        this.pivot.add(d)  // the pivot stays between the fingers
         const scale = this.prev.dist / Math.max(g.dist, 1)
         this.zoom(scale)
         this.turn(g.angle - this.prev.angle)
@@ -179,25 +178,17 @@ export class TouchMap {
   }
 
   /**
-   * Where a screen point meets the gesture's horizontal plane, no farther than REACH
-   * times the camera's distance from its target. Near the horizon of a tilted view a
-   * few pixels span kilometers, and above it there's no ground at all: dragging there
-   * flung the map out of the city. Beyond the limit, points sit on it in the same direction.
+   * The ground movement for a finger movement of (dx, dy) pixels: the map follows the
+   * finger at the scale of the screen center, the same everywhere on the screen.
    */
-  private onPlane(p: Vector2, out: Vector3): Vector3 {
-    this.ray.setFromCamera(this.ndc(p), this.camera)
-    const cam = this.camera.position
-    const reach = REACH * cam.distanceTo(this.map.target)
-    const dir = this.ray.ray.direction
-    const flat = Math.hypot(dir.x, dir.z) || 1e-9
-    const hit = this.ray.ray.intersectPlane(this.plane, out)
-    if (hit && Math.hypot(hit.x - cam.x, hit.z - cam.z) <= reach) return hit
-    // Past the limit (and above the horizon) the distance keeps growing, gently: one
-    // `reach` per radian of view angle, so dragging in the sky still moves the map.
-    const height = Math.max(cam.y + this.plane.constant, 1)
-    const below = Math.asin(MathUtils.clamp(-dir.y, -1, 1))
-    const d = reach * (1 + Math.max(0, Math.atan(height / reach) - below))
-    return out.set(cam.x + (dir.x / flat) * d, -this.plane.constant, cam.z + (dir.z / flat) * d)
+  private screenToGround(dx: number, dy: number): Vector3 {
+    const dist = this.camera.position.distanceTo(this.map.target)
+    const perPixel = (2 * dist * Math.tan(MathUtils.degToRad(this.camera.fov) / 2)) / this.dom.clientHeight
+    const right = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion).setY(0).normalize()
+    const ahead = new Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion).setY(0)  // screen-up, on the ground
+    if (ahead.lengthSq() < 1e-8) ahead.set(-right.z, 0, right.x)
+    ahead.normalize()
+    return right.multiplyScalar(-dx * perPixel).addScaledVector(ahead, dy * perPixel)
   }
 
   private translate(d: Vector3): void {

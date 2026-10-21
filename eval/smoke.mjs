@@ -53,6 +53,80 @@ const last = xs[xs.length - 1]
 if (Math.abs(last - xs[xs.length - 3]) >= 0.05) fail.push('walker did not stop at the wall')
 if (last < -40) fail.push('walker went through the building')
 
+// 3. Phone gestures in map mode: twist turns about the point between the fingers, two
+// fingers sliding up tilt toward the horizon, spreading zooms in, the compass faces north.
+await page.close()
+const phone = await browser.newContext({ viewport: { width: 400, height: 800 }, hasTouch: true, isMobile: true })
+page = await phone.newPage()
+page.setDefaultNavigationTimeout(120_000)
+await page.goto(`${APP_URL}/?view=loop-overview`)
+await ready()
+const cdp = await phone.newCDPSession(page)
+const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', {
+  type, touchPoints: pts.map(([x, y], id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 })),
+})
+// Two fingers moved in steps from `a` to `b` (each a pair of [x, y]).
+async function gesture(a, b, steps = 12) {
+  await touch('touchStart', a)
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps
+    await touch('touchMove', a.map(([x, y], k) => [x + (b[k][0] - x) * t, y + (b[k][1] - y) * t]))
+    await page.waitForTimeout(40)
+  }
+  await touch('touchEnd', [])
+  await page.waitForTimeout(300)
+}
+const state = () => page.evaluate(() => {
+  const { controls, stage } = window.__cimDebug
+  const c = stage.camera, t = controls.map.target
+  const off = c.position.clone().sub(t)
+  return { heading: controls.heading(), dist: off.length(), polar: Math.acos(off.y / off.length()),
+           compass: !document.getElementById('compass').hidden }
+})
+// Screen position of the world point that was under the screen point (x, y) when `mark` ran.
+await page.evaluate(() => {
+  window.__mark = (x, y) => {
+    const { stage, controls } = window.__cimDebug
+    const ray = new controls.ray.constructor()
+    ray.setFromCamera({ x: (x / innerWidth) * 2 - 1, y: -(y / innerHeight) * 2 + 1 }, stage.camera)
+    const hits = ray.intersectObjects([...window.__cimDebug.city.buildingMeshes, ...window.__cimDebug.city.groundMeshes], false)
+    window.__marked = hits[0]?.point.clone() ?? null
+  }
+  window.__where = () => {
+    const p = window.__marked?.clone().project(window.__cimDebug.stage.camera)
+    return p ? [(p.x + 1) / 2 * innerWidth, (1 - p.y) / 2 * innerHeight] : null
+  }
+})
+const c = [200, 450], r = 90
+const ring = (deg) => [[c[0] - r * Math.cos(deg * Math.PI / 180), c[1] - r * Math.sin(deg * Math.PI / 180)],
+                       [c[0] + r * Math.cos(deg * Math.PI / 180), c[1] + r * Math.sin(deg * Math.PI / 180)]]
+const s0 = await state()
+await page.evaluate(([x, y]) => window.__mark(x, y), c)
+await gesture(ring(0), ring(40))
+const s1 = await state()
+const at = await page.evaluate(() => window.__where())
+const turned = ((s1.heading - s0.heading) * 180) / Math.PI
+const drift = at ? Math.hypot(at[0] - c[0], at[1] - c[1]) : Infinity
+console.log(`twist 40°: heading ${turned.toFixed(1)}°, pivot moved ${drift.toFixed(1)} px, compass ${s1.compass}`)
+// Twisting clockwise turns the map clockwise with the fingers, so the view's heading drops.
+if (Math.abs(turned + 40) > 8) fail.push('twisting two fingers clockwise did not turn the map clockwise by about the twist angle')
+if (drift > 25) fail.push('the point between the fingers did not stay put while turning')
+if (!s1.compass) fail.push('the compass did not appear after turning')
+await gesture([[150, 600], [250, 600]], [[150, 420], [250, 420]])
+const s2 = await state()
+console.log(`tilt: polar ${(s1.polar * 57.3).toFixed(1)}° -> ${(s2.polar * 57.3).toFixed(1)}°`)
+if (!(s2.polar > s1.polar + 0.1)) fail.push('sliding two fingers up did not tilt toward the horizon')
+await gesture([[170, 450], [230, 450]], [[110, 450], [290, 450]])
+const s3 = await state()
+console.log(`pinch out: distance ${s2.dist.toFixed(0)} -> ${s3.dist.toFixed(0)} m`)
+if (!(s3.dist < s2.dist * 0.7)) fail.push('spreading two fingers did not zoom in')
+const box = await page.locator('#compass').boundingBox()
+await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+await page.waitForTimeout(2500)
+const s4 = await state()
+console.log(`compass tap: heading ${(s4.heading * 57.3).toFixed(1)}°, compass shown ${s4.compass}`)
+if (Math.abs(s4.heading) > 0.02) fail.push('tapping the compass did not turn the map to north')
+
 await browser.close()
 console.log(fail.length ? `FAILED: ${fail.join('; ')}` : 'ok')
 process.exit(fail.length ? 1 : 0)

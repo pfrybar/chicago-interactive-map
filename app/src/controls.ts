@@ -1,5 +1,6 @@
 import { MathUtils, Mesh, PerspectiveCamera, Raycaster, Vector2, Vector3 } from 'three'
 import { MapControls } from 'three/addons/controls/MapControls.js'
+import { TouchMap } from './touch'
 
 export type Mode = 'map' | 'walk'
 
@@ -11,12 +12,14 @@ const LOOK_SPEED = 0.0022
 
 /**
  * Two ways to move:
- * - map: MapControls (drag to pan, right-drag/two fingers to rotate, wheel/pinch to zoom)
+ * - map: MapControls for the mouse (drag to pan, right-drag to rotate, wheel to zoom);
+ *   TouchMap for fingers (drag, pinch, twist, two-finger tilt; see touch.ts)
  * - walk: first person at eye height, collides with buildings
  */
 export class Controls {
   mode: Mode = 'map'
   readonly map: MapControls
+  readonly touch: TouchMap
   private yaw = 0
   private pitch = 0
   private keys = new Set<string>()
@@ -41,6 +44,7 @@ export class Controls {
     map.maxDistance = 9000
     map.zoomToCursor = true
     this.map = map
+    this.touch = new TouchMap(camera, map, dom, () => [...this.colliders(), ...this.ground()])
     this.ray.firstHitOnly = true
     this.down.firstHitOnly = true
 
@@ -100,12 +104,26 @@ export class Controls {
     }
     this.mode = mode
     this.map.enabled = mode === 'map'
+    this.touch.enabled = mode === 'map'
     if (mode === 'map' && document.pointerLockElement) document.exitPointerLock()
     this.onModeChange(mode)
   }
 
   setStick(x: number, y: number): void {
     this.stick.set(x, y)
+  }
+
+  /** Compass heading of the view in radians, clockwise from north (world -z is north). */
+  heading(): number {
+    const f = new Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion)
+    return Math.atan2(f.x, -f.z)
+  }
+
+  /** Turn the map by `angle` radians clockwise on screen (the heading drops) about the point it's looking at. */
+  turnBy(angle: number): void {
+    if (this.mode !== 'map') return
+    this.touch.turn(angle, this.map.target.clone())
+    this.camera.lookAt(this.map.target)
   }
 
   /** Where the camera is aimed on the ground (world). */

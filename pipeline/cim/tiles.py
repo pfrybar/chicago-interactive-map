@@ -479,7 +479,13 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
 
     density = b["n"].fillna(0) / b["fp_area"].clip(lower=1)
     lidar_h = b["p95"] - b["base_min"]
-    use = ((density >= load_config()["lidar"]["min_density"]) & lidar_h.gt(1.0)
+    # Towers finished after the spring 2017 survey: lidar measured what stood there
+    # before (110 North Wacker reads 34 m, not 249 m). When lidar is under half of a
+    # mapped OSM height of 40 m or more, keep the mapping. (City floor counts are the
+    # stale source, so they don't get this benefit of the doubt.)
+    b["newer_than_lidar"] = (b["source_prev"].isin(["osm:height", "osm:levels"]) & (b["height_prev"] >= 40)
+                             & (lidar_h < 0.5 * b["height_prev"]))
+    use = ((density >= load_config()["lidar"]["min_density"]) & lidar_h.gt(1.0) & ~b["newer_than_lidar"]
            & (b["min_height"] < 0.5)
            & (overlap <= 0.1)
            & ~((b["kind"] == "part") & (b["source_prev"] == "osm:height")))

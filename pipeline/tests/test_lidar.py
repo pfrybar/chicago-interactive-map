@@ -44,3 +44,13 @@ def test_triangulate_planar_roof_surface():
     verts, tris, n = _triangulate_surface([ring])
     assert len(tris) == 6 and np.isclose(np.linalg.norm(n), 1.0)
     assert n[2] > 0 and n[1] < 0                          # faces up and toward -y (downhill)
+
+
+def test_outline_with_few_parts_keeps_the_uncovered_rest():
+    # Mirrors the Art Institute: an outline with one small mapped part.
+    import shapely
+    from cim.buildings import PARTS_COVER
+    outline, part = box(0, 0, 100, 100), box(0, 0, 30, 30)
+    rest = outline.difference(part)
+    assert rest.area > (1 - PARTS_COVER) * outline.area      # kept, minus the part
+    assert shapely.area(outline.difference(box(0, 0, 100, 96))) <= (1 - PARTS_COVER) * outline.area  # dropped

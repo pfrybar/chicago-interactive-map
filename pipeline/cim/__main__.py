@@ -39,6 +39,10 @@ def main() -> None:
     lf.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
     lf.add_argument("--jobs", type=int, help="tiles at once (default lidar.cook2022_downloads)")
 
+    orth = sub.add_parser("ortho", help="check trees and footprints against the 2025 county orthophotos")
+    orth.add_argument("--area", type=int, required=True)
+    orth.add_argument("--no-review", action="store_true", help="skip the local review crops")
+
     im = sub.add_parser("images", help="street-level photos near a point (Mapillary, KartaView)")
     im.add_argument("--at", help="local x,y in meters")
     im.add_argument("--radius", type=float, default=60.0)
@@ -82,6 +86,9 @@ def main() -> None:
         from .tiles import build_leaves
         areas = list(range(1, 78)) if a.areas == "all" else [int(x) for x in a.areas.split(",")]
         fetch_for({leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}, a.jobs)
+    elif a.cmd == "ortho":
+        from .ortho import check_area
+        check_area(a.area, review=not a.no_review)
     elif a.cmd == "roofs":
         from . import roofs
         from .grid import BLOCK_LEVEL

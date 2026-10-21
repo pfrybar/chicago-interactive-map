@@ -447,6 +447,16 @@ def _apply_overrides(buildings: gpd.GeoDataFrame, areas: list[int]) -> gpd.GeoDa
     return overrides.apply(buildings, areas, dem_at)
 
 
+def gone_city_footprints(b: pd.DataFrame, density: pd.Series) -> pd.Series:
+    """City footprints that OSM doesn't have, where the lidar sees bare ground.
+
+    The city's data keeps some demolished buildings (Cabrini-Green). Ones the city
+    dates 2017 or later may be newer than the survey, so they stay.
+    """
+    bare = (b["fp_area"] > 100) & (density < 0.05)
+    return (b["kind"] == "city") & bare & ~(b["year_built"].fillna(0) >= 2017)
+
+
 def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
     """Replace heights with lidar where it can be trusted, and set each building's ground level.
 
@@ -492,6 +502,7 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
     b["newer_than_lidar"] = (use & b["source_prev"].isin(["osm:height", "osm:levels"]) & (b["height_prev"] >= 40)
                              & (lidar_h < 0.5 * b["height_prev"]) & ~rest)
     use &= ~b["newer_than_lidar"]
+    b["gone"] = gone_city_footprints(b, density)
     b.loc[use, "height"] = lidar_h[use].round(2)
     b.loc[use, "height_source"] = "lidar"
     b["base"] = b["base_min"].fillna(0.0)
@@ -512,6 +523,8 @@ def build(areas: list[int], build_name: str) -> dict:
     buildings = load_buildings(areas)
     buildings = apply_lidar(buildings, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves})
     buildings = _apply_overrides(buildings, areas)
+    everything = buildings  # for the accuracy report
+    buildings = buildings[~buildings["gone"].fillna(False).astype(bool)]
 
     # Split buildings by block so each worker reads only its own.
     tmp = WORK / "tiles-tmp" / build_name
@@ -616,7 +629,7 @@ def build(areas: list[int], build_name: str) -> dict:
         "sources": json.loads(LOCK_FILE.read_text()) if LOCK_FILE.exists() else {},
     }
     from .accuracy import report as accuracy_report
-    accuracy = accuracy_report(buildings, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves}, out_dir / "accuracy.json")
+    accuracy = accuracy_report(everything, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves}, out_dir / "accuracy.json")
     report["accuracy"] = accuracy["overall"]
     (out_dir / "report.json").write_text(json.dumps(report, indent=2))
     (out_dir / "attribution.json").write_text(json.dumps(_attribution(), indent=2))

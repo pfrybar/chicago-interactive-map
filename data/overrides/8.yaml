@@ -1,0 +1,10 @@
+# Near North Side (8). Fixes from the first verify pass (2026-10-21); see agent/state/areas.yaml.
+buildings:
+  chi:349012:
+    height: 13
+    reason: >
+      Chicago Fire Department Engine 42 is a low brick firehouse. OSM's
+      building:levels=21 is wrong, and the newer-than-lidar rule kept it at 73.5 m.
+      The lidar's 13 m matches the photo.
+    evidence: mapillary:166553602701717
+add: []

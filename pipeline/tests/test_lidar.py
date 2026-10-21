@@ -103,3 +103,22 @@ def test_tree_mask_covers_carriageways_and_the_l_but_not_sidewalks_or_tunnels():
     assert not shapely.contains_xy(m, 50, 10)   # a footway: street trees stand there
     assert not shapely.contains_xy(m, 50, 50)   # a road in a tunnel
     assert shapely.contains_xy(m, 50, 87)       # under the elevated structure, near its edge
+
+
+def test_bridge_deck_fills_slots_between_lanes_and_sidewalks_over_water():
+    import pandas as pd
+    import shapely
+    from shapely.geometry import LineString
+    from cim.ground import _bridge_decks
+    # A road bridge (3 lanes, 9.9 m) with two sidewalks whose centerlines are 8.7 m away.
+    feats = gpd.GeoDataFrame(pd.DataFrame({
+        "highway": ["secondary", "footway", "footway"], "lanes": ["3", None, None],
+        "bridge": ["movable", "yes", "yes"], "tunnel": [None] * 3, "layer": ["1"] * 3,
+    }, dtype=object), geometry=[LineString([(0, -30), (0, 30)]), LineString([(8.7, -30), (8.7, 30)]),
+                                LineString([(-8.7, -30), (-8.7, 30)])])
+    water = box(-50, -20, 50, 20)
+    hw = feats["highway"]
+    deck = _bridge_decks(feats, pd.Series(True, index=feats.index), hw, water)
+    assert shapely.contains_xy(deck, 6.0, 0) and shapely.contains_xy(deck, -6.0, 0)   # the slots are filled
+    assert not shapely.contains_xy(deck, 6.0, 25)                                    # but only over water
+    assert not shapely.contains_xy(deck, 20.0, 0)                                    # and not beyond the deck

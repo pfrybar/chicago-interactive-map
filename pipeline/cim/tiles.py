@@ -23,7 +23,7 @@ import pandas as pd
 import shapely
 from shapely.geometry import box
 
-from . import mesh
+from . import mesh, water
 from .areas import area_polygon_local, area_row
 from .config import BUILDS, LOCK_FILE, WORK, area_dir, load_config, load_sources
 from .frame import local_frame
@@ -213,8 +213,8 @@ def _masses(buildings: gpd.GeoDataFrame, level: int) -> list[tuple]:
 
 
 def _water_z() -> float:
-    cfg = load_config()
-    return float(cfg["water_level"]) - float(cfg["ground_datum"])
+    """Lake Michigan's surface (the lowest water drawn), local z."""
+    return water.lake_z()
 
 
 def _plane_residual(z: np.ndarray) -> float:
@@ -279,10 +279,11 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
             continue
         mb = mesh.MeshBuilder()
         if layer == "water":
-            # Water is flat at lake level; walls rise from it to the banks.
+            # Water is flat at its body's level (the lake's, or a measured lagoon's);
+            # walls rise from it to the banks.
             for c in _cells(key.bounds, GROUND_CELL * 2 ** key.level):
                 for poly in _polys(_clip_cell(geom, c)):
-                    mesh.add_flat(mb, poly, water_z)
+                    mesh.add_flat(mb, poly, water.level_at(poly))
         else:
             for c, max_len in cells:
                 for poly in _polys(_clip_cell(geom, c)):
@@ -298,8 +299,9 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
             skip = _skip_walls(key.bounds, ground.get("bridge"))
             for poly in _polys(geom):
                 poly = orient(poly, sign=1.0)
+                z = water.level_at(poly)
                 for ring in [poly.exterior, *poly.interiors]:
-                    mesh.add_walls(wb, np.asarray(ring.coords)[:, :2], water_z, dem.sample, skip)
+                    mesh.add_walls(wb, np.asarray(ring.coords)[:, :2], z, dem.sample, skip)
             if (arr := wb.arrays()) is not None:
                 arr.pop("_FEATURE_ID_0")
                 meshes.append({"name": "wall", "material": MAT_INDEX["wall"], "arrays": arr})
@@ -547,6 +549,7 @@ def build(areas: list[int], build_name: str) -> dict:
     leaves = build_leaves(areas)
     buildings = load_buildings(areas)
     buildings = apply_lidar(buildings, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves})
+    water.build()  # per-body water levels, read by the tile workers
     buildings = _apply_overrides(buildings, areas)
     everything = buildings  # for the accuracy report
     buildings = buildings[~buildings["gone"].fillna(False).astype(bool)]

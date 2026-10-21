@@ -101,8 +101,8 @@ def build(area: int) -> gpd.GeoDataFrame:
                 "min_height": round(mh, 2),
                 "height_source": src,
                 "year_built": _year(city_rec["year_built"]) if city_rec is not None else None,
-                # What's left of an outline around mapped parts; its height tags describe the whole building.
-                "has_parts": kind == "outline" and idx in trimmed,
+                "has_parts": False,
+                "_outline": idx if kind == "outline" else parent.get(idx),
                 "geometry": r.geometry,
             })
 
@@ -120,10 +120,17 @@ def build(area: int) -> gpd.GeoDataFrame:
                 "id": f"chi:{r['bldg_id']}", "osm_id": None, "kind": "city",
                 "name": r["bldg_name1"] or None, "height": round(h, 2), "min_height": 0.0,
                 "height_source": src, "year_built": _year(r["year_built"]), "has_parts": False,
-                "geometry": r.geometry,
+                "_outline": None, "geometry": r.geometry,
             })
 
     out = gpd.GeoDataFrame(rows, geometry="geometry", crs=local_frame().crs)
+    # has_parts: the rest of an outline whose tower is one of its mapped parts (a part
+    # reaches 90% of the outline's height). Its height tags describe that tower, so the
+    # lidar's lower reading of the rest is the podium, not a building newer than the survey.
+    is_rest = (out["kind"] == "outline") & out["_outline"].isin(list(trimmed))
+    tallest = out[out["kind"] == "part"].groupby("_outline")["height"].max()
+    out["has_parts"] = is_rest & (out["_outline"].map(tallest).fillna(0) >= 0.9 * out["height"])
+    out = out.drop(columns="_outline")
     # Keep buildings whose center is inside this community area.
     inside = out.geometry.representative_point().within(boundary)
     out = out[inside].reset_index(drop=True)

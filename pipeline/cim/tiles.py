@@ -487,7 +487,7 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
            & (b["min_height"] < 0.5)
            & (overlap <= 0.1)
            & ~((b["kind"] == "part") & (b["source_prev"] == "osm:height")))
-    # Not for the rest of an outline around mapped parts: its tags describe the tower, lidar the podium.
+    # Not for podiums left around a tower mapped as a part (has_parts, see buildings.py).
     rest = b["has_parts"].fillna(False).astype(bool) if "has_parts" in b else False
     b["newer_than_lidar"] = (use & b["source_prev"].isin(["osm:height", "osm:levels"]) & (b["height_prev"] >= 40)
                              & (lidar_h < 0.5 * b["height_prev"]) & ~rest)

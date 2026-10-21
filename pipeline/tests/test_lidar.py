@@ -160,3 +160,24 @@ def test_roof_stats_counts_unclassified_tower_tops_above_a_building_class_podium
     assert s.loc["tower", "p95"] > 170
     assert s.loc["house", "p95"] < 9
     assert s.loc["low", "p95"] < 15
+
+
+def test_2017_trees_join_2022_only_where_2022_still_sees_vegetation(monkeypatch):
+    import pandas as pd
+    from cim import trees
+    from cim.grid import Key
+    old = pd.DataFrame({"x": [10.0, 50.0, 90.0], "y": [10.0, 10.0, 10.0], "height": [12.0, 12.0, 12.0],
+                        "radius": [3.4, 3.4, 3.4], "crown_cells": [40, 40, 40], "base": [0.0] * 3})
+    monkeypatch.setattr(trees, "_load_2017", lambda key: old)
+    new = pd.DataFrame({"x": [10.5], "y": [10.0], "base": [0.0], "height": [11.0], "radius": [3.2],
+                        "crown_cells": [35], "survey": ["cook2022"]})
+    # 2022 vegetation: branches at the second tree's spot; nothing at the third (cut down).
+    rng = np.random.default_rng(0)
+    x = np.r_[rng.normal(10, 1, 50), rng.normal(50, 1, 20)]
+    y = np.r_[rng.normal(10, 1, 50), rng.normal(10, 1, 20)]
+    h = np.r_[np.full(50, 11.0), np.full(20, 9.0)]
+    dem = Dem(np.zeros((20, 20), np.float32), 0, 0, 10.0)
+    out = trees.add_confirmed_2017(Key(2, 0, 0), new, x, y, h, dem)
+    assert len(out) == 2                                       # the 2022 tree + the confirmed one
+    added = out[out["survey"] != "cook2022"].iloc[0]
+    assert added["x"] == 50.0 and added["height"] == 9.0      # 2022's measured height

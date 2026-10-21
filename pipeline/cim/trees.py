@@ -18,7 +18,7 @@ import shapely
 from scipy import ndimage
 
 from . import mesh
-from .config import lidar_work, lidar_workers, load_config
+from .config import lidar_source, lidar_work, lidar_workers, load_config
 from .grid import Key
 from .lidar import block_paths, load_dem, read_points
 from .osm import load_features
@@ -29,6 +29,7 @@ TREES = lidar_work("trees")
 VEGETATION = (3, 4, 5)
 CELL = 1.0
 MIN_HEIGHT = 3.0
+MIN_SUPPORT = 6  # vegetation points in the 3 m window around a top
 # A tree top needs a crown: at least this many 1 m cells within 3 m of the peak at half
 # its height or more. Light poles, signals and strips of facade points along buildings
 # have a sharp peak with nothing around it. Measured against the 2025 orthophotos on
@@ -63,7 +64,7 @@ def detect(key: Key) -> pd.DataFrame:
         out[inside] = False
         x, y, h = x[out], y[out], h[out]
     if not len(x):
-        return pd.DataFrame(columns=["x", "y", "base", "height", "radius", "crown_cells"])
+        return pd.DataFrame(columns=["x", "y", "base", "height", "radius", "crown_cells", "survey"])
 
     gx0, gy0 = grown[0], grown[1]
     w, hh = int(np.ceil((grown[2] - gx0) / CELL)), int(np.ceil((grown[3] - gy0) / CELL))
@@ -78,7 +79,7 @@ def detect(key: Key) -> pd.DataFrame:
     # Tree tops: local maxima in a 5 m window, at least MIN_HEIGHT tall, with enough points around.
     peaks = (chm == ndimage.maximum_filter(chm, size=5)) & (chm >= MIN_HEIGHT)
     support = ndimage.uniform_filter(count.astype(np.float32), size=3) * 9
-    peaks &= support >= 6
+    peaks &= support >= MIN_SUPPORT
     pi, pj = np.nonzero(peaks)
     crown = crown_cells(raw, pi, pj, chm[pi, pj])
     big = crown >= np.where(chm[pi, pj] > TALL_M, MIN_CROWN_CELLS_TALL, MIN_CROWN_CELLS)
@@ -101,8 +102,50 @@ def detect(key: Key) -> pd.DataFrame:
         wet = shapely.union_all([shapely.clip_by_rect(shapely.make_valid(g), *grown) for g in water])
         dry = ~shapely.contains_xy(wet, px, py)
         px, py, ph, radius, crown = px[dry], py[dry], ph[dry], radius[dry], crown[dry]
-    return pd.DataFrame({"x": px, "y": py, "base": dem.sample(px, py), "height": ph, "radius": radius,
-                         "crown_cells": crown})
+    out = pd.DataFrame({"x": px, "y": py, "base": dem.sample(px, py), "height": ph, "radius": radius,
+                        "crown_cells": crown, "survey": lidar_source()})
+    if lidar_source() == "cook2022":
+        out = add_confirmed_2017(key, out, x, y, h, dem)
+    return out
+
+
+def add_confirmed_2017(key: Key, trees: pd.DataFrame, x, y, h, dem) -> pd.DataFrame:
+    """2022 trees plus the 2017 trees the 2022 survey still sees vegetation at.
+
+    The 2022 flight was early in the leaf-out, so small and late trees have thin crowns
+    and many aren't detected; its classes are much cleaner, though. A 2017 tree with no
+    2022 tree nearby is kept when 2022 vegetation points (branches) stand at its spot, at
+    least half its old height. Trees cut down since, and 2017 'trees' that were poles or
+    facades, have none. On the Loop and Near North Side this keeps more trees with canopy
+    in the 2025 photos than either survey alone, at 2022's precision (28% failing vs 38%).
+    """
+    from scipy.spatial import cKDTree
+    old = _load_2017(key)
+    if old is None or not len(old) or not len(x):
+        return trees
+    if len(trees):
+        dist = cKDTree(trees[["x", "y"]].values).query(old[["x", "y"]].values, distance_upper_bound=6.0)[0]
+        old = old[~np.isfinite(dist) | (dist > 0.8 * old["radius"].values)]
+    pts = cKDTree(np.c_[x, y])
+    rows = []
+    for r in old.itertuples():
+        idx = pts.query_ball_point([r.x, r.y], max(1.5, 0.5 * r.radius))
+        if len(idx) >= 3 and h[idx].max() >= 0.5 * r.height:
+            height = float(h[idx].max())
+            rows.append({"x": r.x, "y": r.y, "base": float(dem.sample(np.array([r.x]), np.array([r.y]))[0]),
+                         "height": height, "radius": float(np.clip(0.18 * height + 1.2, 1.5, 9.0)),
+                         "crown_cells": int(r.crown_cells), "survey": "2017 confirmed by 2022"})
+    return pd.concat([trees, pd.DataFrame(rows)], ignore_index=True) if rows else trees
+
+
+def _load_2017(key: Key) -> pd.DataFrame | None:
+    """This block's 2017 trees, if they were made with the current settings."""
+    from .config import WORK
+    folder = WORK / "trees"
+    path, stamp = folder / f"{key.i}_{key.j}.parquet", folder / f"{key.i}_{key.j}.settings"
+    if not path.exists() or not stamp.exists() or stamp.read_text() != settings().replace(" +2017", ""):
+        return None
+    return pd.read_parquet(path)
 
 
 def _carriageways_and_rail(feats, bounds):
@@ -140,7 +183,8 @@ def crown_cells(raw: np.ndarray, pi, pj, peak_h, reach: int = 3) -> np.ndarray:
 
 def settings() -> str:
     """The detection settings a cached block was made with; blocks with others are redone."""
-    return f"v3 min_height={MIN_HEIGHT} crown={MIN_CROWN_CELLS}/{MIN_CROWN_CELLS_TALL}@{TALL_M}m roads+rail8"
+    base = f"v3 min_height={MIN_HEIGHT} crown={MIN_CROWN_CELLS}/{MIN_CROWN_CELLS_TALL}@{TALL_M}m roads+rail8"
+    return base + " +2017" if lidar_source() == "cook2022" else base
 
 
 def _stamp(key: Key):
@@ -160,6 +204,11 @@ def run(blocks, force: bool = False) -> None:
     def current(k):
         return (TREES / f"{k.i}_{k.j}.parquet").exists() and _stamp(k).exists() and _stamp(k).read_text() == settings()
     todo = [k for k in sorted(blocks) if (force or not current(k)) and block_paths(k)[0].exists()]
+    if lidar_source() == "cook2022":
+        missing = sum(1 for k in todo if _load_2017(k) is None)
+        if missing:
+            print(f"  trees: {missing} blocks have no current 2017 trees to merge; run the trees step "
+                  "with lidar.source ept2017 first")
     if not todo:
         print("  trees: all blocks up to date")
         return

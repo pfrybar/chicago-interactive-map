@@ -40,3 +40,22 @@ lidar_cook_2017:
   license: Public domain (U.S. Government work)
   attribution: U.S. Geological Survey 3DEP
   homepage: https://www.usgs.gov/3d-elevation-program
+
+mapillary:
+  description: >
+    Street-level photos, used only to check buildings during the verify pass (not as
+    map data). Looked up with `python -m cim images`; photos used as evidence are
+    logged in data/attribution/images.jsonl. Needs MAPILLARY_TOKEN.
+  url: https://graph.mapillary.com/images
+  file: none
+  license: CC-BY-SA-4.0 (per image)
+  attribution: Mapillary contributors
+  homepage: https://www.mapillary.com
+
+kartaview:
+  description: Street-level photos, used like Mapillary. No token needed; sparse in Chicago.
+  url: https://api.openstreetcam.org/1.0/list/nearby-photos/
+  file: none
+  license: CC-BY-SA-4.0 (per image)
+  attribution: KartaView contributors
+  homepage: https://kartaview.org

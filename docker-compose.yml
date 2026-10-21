@@ -7,6 +7,7 @@ services:
     image: cim-pipeline:dev
     user: "${UID:-1000}:${GID:-1000}"
     environment: { HOME: /tmp, USER: cim }  # snakemake needs a user name; the host UID has none in the image
+    env_file: [{ path: .env, required: false }]  # MAPILLARY_TOKEN; never committed
     volumes: [".:/repo"]
     working_dir: /repo
 

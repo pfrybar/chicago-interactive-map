@@ -35,6 +35,11 @@ def main() -> None:
     tr.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
     tr.add_argument("--force", action="store_true", help="redo blocks that already have outputs")
 
+    im = sub.add_parser("images", help="street-level photos near a point (Mapillary, KartaView)")
+    im.add_argument("--at", help="local x,y in meters")
+    im.add_argument("--radius", type=float, default=60.0)
+    im.add_argument("--record", help="log a photo id used as evidence, e.g. mapillary:123")
+
     sub.add_parser("areas", help="list community areas")
     loc = sub.add_parser("locate", help="convert latitude/longitude to local map meters (for viewpoints)")
     loc.add_argument("lat", type=float)
@@ -86,6 +91,16 @@ def main() -> None:
         from .tiles import build_leaves
         areas = list(range(1, 78)) if a.areas == "all" else [int(x) for x in a.areas.split(",")]
         trees.run({leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}, a.force)
+    elif a.cmd == "images":
+        from . import imagery
+        if a.record:
+            print(imagery.record(a.record))
+        elif a.at:
+            x, y = (float(v) for v in a.at.split(","))
+            for p in imagery.near(x, y, a.radius):
+                print(f"{p['id']:28s} {p['distance']:5.1f} m  heading {p['heading'] or 0:5.0f}°"
+                      f"  toward target {p['bearing_to_target']:3d}°  {p['captured']}  "
+                      f"{'360°' if p['panorama'] else ''}  {p.get('file', '')}")
     elif a.cmd == "locate":
         from pyproj import Transformer
         from .frame import local_frame

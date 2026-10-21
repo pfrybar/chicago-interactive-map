@@ -63,7 +63,7 @@ Dependency versions are pinned exactly. When adding or upgrading one, pick a rel
 
 ## The neighborhood walk
 
-The `verify` pass starts from `data/builds/<build>/accuracy.json`. Per area it lists the largest height disagreements, footprints with no lidar returns, and unmapped building-point clusters, each with local coordinates (`at`) and OSM ids. Check each item against open imagery (Mapillary, KartaView). Record OSM errors as notes for a person to fix (no automated OSM edits), and record fixes to our output as overrides.
+The `verify` pass starts from `data/builds/<build>/accuracy.json`. To see a place, run `docker compose run --rm pipeline python -m cim images --at=<x>,<y> --radius 60`. It lists Mapillary and KartaView photos nearby (with each photo's heading and the bearing toward the target) and saves them under `data/work/imagery/`. Mapillary needs `MAPILLARY_TOKEN` in `.env`. Record every photo you rely on with `--record <id>`, and cite it as `evidence` in the override. Per area it lists the largest height disagreements, footprints with no lidar returns, and unmapped building-point clusters, each with local coordinates (`at`) and OSM ids. Check each item against open imagery (Mapillary, KartaView). Record OSM errors as notes for a person to fix (no automated OSM edits), and record fixes to our output as overrides.
 
 
 Agents improve the map one community area and one **pass** at a time. A pass is a type of work, such as `massing`, `verify`, `trees` or `recipes`.

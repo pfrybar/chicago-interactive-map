@@ -52,13 +52,14 @@ def build(area: int) -> gpd.GeoDataFrame:
     # its parts cover most of it; otherwise what the parts don't cover stays.
     parent: dict = {}
     parent_name: dict = {}
+    trimmed: dict = {}
     if len(parts):
         pts = gpd.GeoDataFrame(geometry=parts.geometry.representative_point(), crs=parts.crs)
         hit = gpd.sjoin(pts, outlines[["geometry"]], predicate="within", how="inner")
         parent = hit.groupby(level=0)["index_right"].first().to_dict()
         names = outlines["name"]
         parent_name = {k: names.get(v) for k, v in parent.items()}
-        drop, trimmed = [], {}
+        drop = []
         for oidx, part_idx in hit.groupby("index_right").groups.items():
             outline = outlines.geometry.loc[oidx]
             covered = shapely.union_all(parts.loc[list(set(part_idx))].geometry.values)
@@ -100,6 +101,8 @@ def build(area: int) -> gpd.GeoDataFrame:
                 "min_height": round(mh, 2),
                 "height_source": src,
                 "year_built": _year(city_rec["year_built"]) if city_rec is not None else None,
+                # What's left of an outline around mapped parts; its height tags describe the whole building.
+                "has_parts": kind == "outline" and idx in trimmed,
                 "geometry": r.geometry,
             })
 
@@ -116,7 +119,8 @@ def build(area: int) -> gpd.GeoDataFrame:
             rows.append({
                 "id": f"chi:{r['bldg_id']}", "osm_id": None, "kind": "city",
                 "name": r["bldg_name1"] or None, "height": round(h, 2), "min_height": 0.0,
-                "height_source": src, "year_built": _year(r["year_built"]), "geometry": r.geometry,
+                "height_source": src, "year_built": _year(r["year_built"]), "has_parts": False,
+                "geometry": r.geometry,
             })
 
     out = gpd.GeoDataFrame(rows, geometry="geometry", crs=local_frame().crs)

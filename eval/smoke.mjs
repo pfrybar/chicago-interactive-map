@@ -62,8 +62,12 @@ page.setDefaultNavigationTimeout(120_000)
 await page.goto(`${APP_URL}/?view=loop-overview`)
 await ready()
 const cdp = await phone.newCDPSession(page)
-const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', {
-  type, touchPoints: pts.map(([x, y], id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 })),
+// Each touch gets a timestamp `step` seconds after the last, as on a phone (~60 Hz). Software
+// rendering delivers events hundreds of milliseconds apart, which would hide momentum.
+let clock = Date.now() / 1000
+const touch = (type, pts, step = 0.016) => cdp.send('Input.dispatchTouchEvent', {
+  type, timestamp: (clock += step),
+  touchPoints: pts.map(([x, y], id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 })),
 })
 // Two fingers moved in steps from `a` to `b` (each a pair of [x, y]).
 async function gesture(a, b, steps = 12) {
@@ -132,6 +136,39 @@ await gesture([[170, 450], [230, 450]], [[110, 450], [290, 450]])
 const s3 = await state()
 console.log(`pinch out: distance ${s2.dist.toFixed(0)} -> ${s3.dist.toFixed(0)} m`)
 if (!(s3.dist < s2.dist * 0.7)) fail.push('spreading two fingers did not zoom in')
+// Momentum: a quick flick keeps the map gliding after the finger lifts; a drag that
+// stops before lifting doesn't; touching the screen catches a glide.
+const target = () => page.evaluate(() => window.__cimDebug.controls.map.target.clone())
+const away = (a, b) => Math.hypot(a.x - b.x, a.z - b.z)
+async function drag(points, holdMs = 0) {
+  await touch('touchStart', [points[0]])
+  for (const pt of points.slice(1)) await touch('touchMove', [pt])
+  await touch('touchEnd', [], 0.016 + holdMs / 1000)
+}
+let t0 = await target()
+await drag([[200, 560], [200, 530], [200, 500], [200, 470], [200, 440]])
+const lifted = await target()
+await page.waitForTimeout(2000)
+const glided = away(await target(), lifted), dragged = away(lifted, t0)
+console.log(`flick: dragged ${dragged.toFixed(0)} m, then glided ${glided.toFixed(0)} m`)
+if (!(glided > 0.2 * dragged)) fail.push('a flick did not keep the map moving after release')
+t0 = await target()
+await drag([[200, 560], [200, 530], [200, 500], [200, 470], [200, 440]], 250)
+const held = await target()
+await page.waitForTimeout(1500)
+const crept = away(await target(), held)
+console.log(`drag then hold: moved ${crept.toFixed(1)} m after release`)
+if (crept > 1) fail.push('a drag that stopped before lifting still glided')
+await drag([[200, 560], [200, 520], [200, 480], [200, 440]])
+await page.waitForTimeout(150)
+await touch('touchStart', [[200, 500]], 0.15)
+const caught = await target()
+await page.waitForTimeout(800)
+const slid = away(await target(), caught)
+await touch('touchEnd', [])
+console.log(`touch during a glide: moved ${slid.toFixed(1)} m while held`)
+if (slid > 1) fail.push('touching the screen did not stop a glide')
+
 const box = await page.locator('#compass').boundingBox()
 await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
 await page.waitForTimeout(2500)

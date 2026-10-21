@@ -154,6 +154,7 @@ export class Controls {
 
   update(dt: number): void {
     if (this.mode === 'map') {
+      this.touch.update(dt * 1000)
       this.map.update()
       return
     }

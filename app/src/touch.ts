@@ -7,9 +7,13 @@ import type { MapControls } from 'three/addons/controls/MapControls.js'
  * - two fingers pinch to zoom, twist to turn and move together to pan, all around the
  *   building or ground between them, which stays put
  * - two fingers sliding up or down together tilt the view
+ * - a flick keeps the map gliding after the fingers lift, slowing like iOS scrolling
  * MapControls still handles the mouse.
  */
 const REACH = 3  // how far a drag can grab the ground, in camera-to-target distances
+const GLIDE_PAN_MS = 325   // time constant of the pan glide's slowdown (iOS scroll views use about this)
+const GLIDE_TURN_MS = 200  // twist and pinch glide for less time
+const LIFT_MS = 60         // a finger still moving this recently when lifted starts a glide
 
 export class TouchMap {
   private pointers = new Map<number, Vector2>()
@@ -21,6 +25,9 @@ export class TouchMap {
   private start: { mid: Vector2; dist: number; angle: number; p: Vector2[] } | null = null
   private tilting: boolean | null = null  // decided on the first real movement of a two-finger gesture
   enabled = true
+  // Velocities while fingers move (m/ms, rad/ms, log-distance/ms), and the glide after they lift.
+  private motion = { pan: new Vector3(), turn: 0, zoom: 0, t: 0 }
+  private glide: { pan: Vector3; turn: number; zoom: number } | null = null
 
   constructor(
     private camera: PerspectiveCamera,
@@ -39,12 +46,22 @@ export class TouchMap {
 
   private down(e: PointerEvent): void {
     if (!this.enabled || e.pointerType !== 'touch') return
+    this.glide = null  // a new touch catches the gliding map
+    this.motion.t = 0
     this.pointers.set(e.pointerId, new Vector2(e.clientX, e.clientY))
     this.begin()
   }
 
   private up(e: PointerEvent): void {
     if (!this.pointers.delete(e.pointerId)) return
+    // Event timestamps, not handling time: on a busy frame the handler runs late.
+    if (this.pointers.size === 0 && this.tilting !== true && e.timeStamp - this.motion.t < LIFT_MS) {
+      const cap = 4e-3 * this.camera.position.distanceTo(this.map.target)  // 4 view distances per second
+      const pan = this.motion.pan.clone()
+      if (pan.length() > cap) pan.setLength(cap)
+      this.glide = { pan, turn: MathUtils.clamp(this.motion.turn, -6e-3, 6e-3), zoom: MathUtils.clamp(this.motion.zoom, -3e-3, 3e-3) }
+    }
+    this.motion.t = 0
     this.begin()
   }
 
@@ -72,21 +89,59 @@ export class TouchMap {
     pt.set(e.clientX, e.clientY)
     const p = [...this.pointers.values()]
     if (p.length === 1) {
-      this.translate(this.grab.clone().sub(this.onPlane(p[0], new Vector3())))
+      const d = this.grab.clone().sub(this.onPlane(p[0], new Vector3()))
+      this.translate(d)
+      this.sample(d, 0, 0, e.timeStamp)
     } else if (p.length >= 2 && this.prev && this.start) {
       const g = this.shape(p[0], p[1])
       if (this.tilting === null) this.tilting = this.decideTilt(p)
       if (this.tilting === true) {
         this.tilt((g.mid.y - this.prev.mid.y) / this.dom.clientHeight)
       } else if (this.tilting === false) {
-        const a = this.onPlane(this.prev.mid, new Vector3())
-        this.translate(a.sub(this.onPlane(g.mid, new Vector3())))
+        const d = this.onPlane(this.prev.mid, new Vector3()).sub(this.onPlane(g.mid, new Vector3()))
+        this.translate(d)
         this.onPlane(g.mid, this.pivot)
-        this.zoom(this.prev.dist / Math.max(g.dist, 1))
+        const scale = this.prev.dist / Math.max(g.dist, 1)
+        this.zoom(scale)
         this.turn(g.angle - this.prev.angle)
+        this.sample(d, g.angle - this.prev.angle, Math.log(scale), e.timeStamp)
       }
       this.prev = g
     }
+    this.camera.lookAt(this.map.target)
+  }
+
+  /** Smoothed velocity of the current gesture, from the movement since the last event. */
+  private sample(pan: Vector3, turn: number, zoom: number, now: number): void {
+    const dt = now - this.motion.t
+    const m = this.motion
+    if (!m.t || dt > 100) {  // first sample, or after a pause: start over
+      m.pan.copy(pan).divideScalar(16); m.turn = turn / 16; m.zoom = zoom / 16
+    } else if (dt > 0) {
+      const k = 0.4
+      m.pan.multiplyScalar(1 - k).addScaledVector(pan, k / dt)
+      m.turn = m.turn * (1 - k) + (turn / dt) * k
+      m.zoom = m.zoom * (1 - k) + (zoom / dt) * k
+    }
+    m.t = now
+  }
+
+  /** Advance a glide by `ms` milliseconds; called every frame in map mode. */
+  update(ms: number): void {
+    const g = this.glide
+    if (!g || !this.enabled) return
+    ms = Math.min(ms, 50)
+    this.translate(g.pan.clone().multiplyScalar(ms))
+    this.turn(g.turn * ms, this.map.target.clone())
+    if (g.zoom) {
+      this.pivot.copy(this.map.target)
+      this.zoom(Math.exp(g.zoom * ms))
+    }
+    g.pan.multiplyScalar(Math.exp(-ms / GLIDE_PAN_MS))
+    g.turn *= Math.exp(-ms / GLIDE_TURN_MS)
+    g.zoom *= Math.exp(-ms / GLIDE_TURN_MS)
+    const still = g.pan.length() * 1000 < 0.02 * this.camera.position.distanceTo(this.map.target)
+    if (still && Math.abs(g.turn) < 2e-5 && Math.abs(g.zoom) < 2e-5) this.glide = null
     this.camera.lookAt(this.map.target)
   }
 

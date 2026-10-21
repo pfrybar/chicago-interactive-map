@@ -452,7 +452,9 @@ def _apply_overrides(buildings: gpd.GeoDataFrame, areas: list[int]) -> gpd.GeoDa
     return overrides.apply(buildings, areas, dem_at)
 
 
-ROOF_SLACK = 1.0  # m a roofer model may rise above the highest lidar point on the roof
+ROOF_SLACK = 1.0         # m a roofer model may rise above the highest lidar point on the roof...
+ROOF_SLACK_SHARE = 0.02  # ...or this share of the building's height, if more: few points land on
+                         # the very top of a tower, so its highest point can sit below a real crown
 
 
 def roof_fits_lidar(pos: np.ndarray, b) -> bool:
@@ -467,7 +469,8 @@ def roof_fits_lidar(pos: np.ndarray, b) -> bool:
     top = b.get("zmax")
     if top is None or not np.isfinite(top):
         return True
-    return float(pos[:, 2].max()) <= float(top) + ROOF_SLACK
+    slack = max(ROOF_SLACK, ROOF_SLACK_SHARE * float(b.get("height") or 0.0))
+    return float(pos[:, 2].max()) <= float(top) + slack
 
 
 def stale_height_tags(b: pd.DataFrame, candidates) -> pd.Series:

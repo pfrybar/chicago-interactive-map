@@ -189,3 +189,6 @@ def test_roof_models_rising_above_every_lidar_point_are_rejected():
     assert not roof_fits_lidar(pos, {"zmax": 6.4})
     assert roof_fits_lidar(pos, {"zmax": 8.3})                  # within 1 m: a real ridge
     assert roof_fits_lidar(pos, {"zmax": float("nan")})         # no lidar: keep
+    tower = np.array([[0, 0, 0.0], [10, 0, 103.0]])
+    assert roof_fits_lidar(tower, {"zmax": 101.0, "height": 101.4})       # a crown within 2% of a 101 m tower
+    assert not roof_fits_lidar(tower, {"zmax": 98.0, "height": 98.9})     # 5 m over: flattened

@@ -134,3 +134,29 @@ def test_rail_profile_ignores_spikes_and_limits_grade():
     assert np.abs(out[45:57] - 8.0).max() < 0.3
     assert (np.abs(np.diff(out)) / np.diff(s)).max() <= MAX_GRADE + 1e-9
     assert out[-1] > 8.4                 # the real rise survives
+
+
+def test_roof_stats_counts_unclassified_tower_tops_above_a_building_class_podium():
+    import pandas as pd
+    from cim.lidar import BUILDING, UNCLASSIFIED, Dem, roof_stats
+    rng = np.random.default_rng(3)
+    dem = Dem(np.zeros((80, 80), np.float32), -10, -10, 1.0)
+    b = gpd.GeoDataFrame({"id": ["tower", "house"]}, geometry=[box(0, 0, 20, 20), box(30, 0, 40, 10)])
+    # Tower: walls and podium classed building up to 20 m, the roof at 180 m unclassified.
+    tx, ty = rng.uniform(1, 19, 3000), rng.uniform(1, 19, 3000)
+    tz = np.r_[rng.uniform(5, 20, 2000), np.full(1000, 180.0)]
+    tc = np.r_[np.full(2000, BUILDING), np.full(1000, UNCLASSIFIED)]
+    # House: roof at 8 m classed building, a tree over it at 15 m classed vegetation.
+    hx, hy = rng.uniform(31, 39, 800), rng.uniform(1, 9, 800)
+    hz = np.r_[np.full(600, 8.0), np.full(200, 15.0)]
+    hc = np.r_[np.full(600, BUILDING), np.full(200, 5)]
+    # Low building next to a tower: the neighbor's facade (unclassified) along one edge.
+    b = pd.concat([b, gpd.GeoDataFrame({"id": ["low"]}, geometry=[box(0, 30, 20, 50)])], ignore_index=True)
+    lx, ly = np.r_[rng.uniform(1, 19, 1000), rng.uniform(0.6, 1.4, 300)], np.r_[rng.uniform(31, 49, 1000), rng.uniform(31, 49, 300)]
+    lz = np.r_[np.full(1000, 14.0), rng.uniform(30, 220, 300)]
+    lc = np.r_[np.full(1000, BUILDING), np.full(300, UNCLASSIFIED)]
+    s = roof_stats(gpd.GeoDataFrame(b, geometry="geometry"), np.r_[tx, hx, lx], np.r_[ty, hy, ly], np.r_[tz, hz, lz],
+                   np.r_[tc, hc, lc].astype(np.uint8), dem).set_index("id")
+    assert s.loc["tower", "p95"] > 170
+    assert s.loc["house", "p95"] < 9
+    assert s.loc["low", "p95"] < 15

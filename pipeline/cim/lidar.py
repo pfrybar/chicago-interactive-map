@@ -44,6 +44,7 @@ MARGIN = 40.0  # meters of extra data around each block, so DEMs agree at block 
 
 GROUND, NOISE, WATER, BRIDGE, HIGH_NOISE = 2, 7, 9, 17, 18
 BUILDING = 6
+UNCLASSIFIED = 1
 
 
 def survey_start():
@@ -267,8 +268,21 @@ def roof_stats(buildings: gpd.GeoDataFrame, x, y, z, cls_, dem: Dem) -> pd.DataF
             # Classes are unreliable downtown (rooftops classed as vegetation), but in
             # neighborhoods trees overhang houses. Trust building-class points when they dominate.
             use = bld if len(bld) >= 0.3 * len(g) else g
+            if use is bld and len(bld):
+                # ...unless many unclassified points stand well above them: in 2022, tower
+                # roofs are often unclassified while the podium and walls are "building"
+                # (Leo Burnett read 17 m instead of 183 m). Vegetation still never counts.
+                # They must cover the footprint like a roof, not hug an edge like the wall of
+                # the tower next door (Loop Synagogue read 220 m from its neighbor's facade).
+                top = np.percentile(bld["z"].values, 95)
+                over = g[(g["c"] == UNCLASSIFIED) & (g["z"] > top + 3.0)]
+                if len(over) >= max(20, 0.1 * len(bld)):
+                    cells = len(set(zip((px[pt_idx[over.index]] // 2).astype(int),
+                                        (py[pt_idx[over.index]] // 2).astype(int))))
+                    if cells >= 0.25 * area[k] / 4.0:
+                        use = g[(g["c"] == BUILDING) | (g["c"] == UNCLASSIFIED)]
             zs = use["z"].values
-            rec.update(n=len(g), n_used=len(use), classes="building" if use is bld else "all",
+            rec.update(n=len(g), n_used=len(use), classes="building" if use is bld else ("all" if use is g else "building+unclassified"),
                        p50=float(np.percentile(zs, 50)), p75=float(np.percentile(zs, 75)),
                        p90=float(np.percentile(zs, 90)), p95=float(np.percentile(zs, 95)),
                        p98=float(np.percentile(zs, 98)))

@@ -20,7 +20,12 @@
   <p class="where" id="where" aria-live="polite"></p>
   <div class="seg" role="group" aria-label="How to move">
     <button type="button" id="mode-map" aria-pressed="true">Map</button>
-    <button type="button" id="mode-walk" aria-pressed="false">Walk</button>
+    <button type="button" id="mode-walk" aria-pressed="false">Street</button>
+  </div>
+  <div class="seg pace" id="pace" role="group" aria-label="Speed" hidden>
+    <button type="button" data-pace="walk" aria-pressed="true">Walk</button>
+    <button type="button" data-pace="bike" aria-pressed="false">Bike</button>
+    <button type="button" data-pace="drive" aria-pressed="false">Drive</button>
   </div>
   <p class="help" id="help"></p>
   <label class="toggle"><input type="checkbox" id="shadows" checked> Sun shadows</label>

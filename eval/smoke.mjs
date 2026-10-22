@@ -34,8 +34,12 @@ await page.evaluate(() => {
   const t = p.clone(); t.x -= 100 // face west
   controls.setView('walk', p, t)
 })
-// Software rendering is slow and frame time is capped, so hold Shift (fast walk)
-// and keep going until the walker stops (or 60 s pass).
+// Software rendering is slow and frame time is capped, so switch to driving and hold
+// Shift (the fastest pace, where a wall is easiest to skip) and keep going until the
+// walker stops (or 60 s pass).
+await page.keyboard.press('Digit3')
+const pace = await page.evaluate(() => document.querySelector('#pace [aria-pressed="true"]')?.textContent)
+if (pace !== 'Drive') fail.push(`pressing 3 selected ${pace}, not Drive`)
 await page.keyboard.down('ShiftLeft')
 await page.keyboard.down('KeyW')
 const xs = []

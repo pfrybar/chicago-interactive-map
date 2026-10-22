@@ -1,7 +1,7 @@
 import { Clock, Mesh, MeshBasicMaterial, Raycaster, Vector2, Vector3 } from 'three'
 import viewpointFile from '../../eval/viewpoints.json'
 import { City, frameMatrix, loadBuild, type Feature } from './city'
-import { Controls, type Mode } from './controls'
+import { Controls, type Mode, type Pace } from './controls'
 import { headingOf, toLocal, toWorld } from './frame'
 import { Minimap, areaAt } from './minimap'
 import { createStage, type Stage } from './scene'
@@ -24,9 +24,9 @@ const HEIGHT_SOURCES: Record<string, string> = {
 }
 const HELP: Record<Mode, string> = {
   map: 'Drag to pan. Right-drag or two fingers to tilt and turn. Scroll or pinch to zoom. Click a building for details.',
-  walk: 'W A S D or arrow keys to walk, hold Shift to go faster. Click the view to look around with the mouse; Esc releases it.',
+  walk: 'W A S D or arrow keys to move; 1, 2, 3 switch between walking, biking and driving speed, and Shift goes faster still. Click the view to look around with the mouse; Esc releases it.',
 }
-const HELP_TOUCH = 'Use the left circle to walk. Drag anywhere else to look around.'
+const HELP_TOUCH = 'Use the left circle to move. Drag anywhere else to look around.'
 const HELP_TOUCH_MAP = 'Drag to move. Pinch to zoom, twist to turn, slide two fingers up or down to tilt. Tap a building for details.'
 
 async function start() {
@@ -65,11 +65,15 @@ async function start() {
     $('mode-walk').setAttribute('aria-pressed', String(m === 'walk'))
     $('help').textContent = touch ? (m === 'walk' ? HELP_TOUCH : HELP_TOUCH_MAP) : HELP[m]
     $('stick').hidden = !(m === 'walk' && touch) || evalMode
+    $('pace').hidden = m !== 'walk'
     document.body.classList.toggle('walking', m === 'walk')
   }
   $('mode-map').addEventListener('click', () => controls.setMode('map'))
   $('mode-walk').addEventListener('click', () => controls.setMode('walk'))
   setupJoystick(controls)
+  const paceButtons = [...$('pace').querySelectorAll<HTMLButtonElement>('button')]
+  controls.onPaceChange = (p) => paceButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pace === p)))
+  paceButtons.forEach((b) => b.addEventListener('click', () => controls.setPace(b.dataset.pace as Pace)))
 
   // Shadows
   const shadowBox = $<HTMLInputElement>('shadows')

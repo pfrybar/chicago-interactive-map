@@ -3,10 +3,13 @@ import { MapControls } from 'three/addons/controls/MapControls.js'
 import { TouchMap } from './touch'
 
 export type Mode = 'map' | 'walk'
+export type Pace = 'walk' | 'bike' | 'drive'
 
 const EYE = 1.7
-const WALK_SPEED = 2.2  // m/s, a brisk walk
-const RUN_SPEED = 12    // m/s, more like a bike; for covering ground
+// m/s: a brisk walk, an easy ride, city traffic (about 30 mph). Shift multiplies by BOOST.
+export const PACE_SPEED: Record<Pace, number> = { walk: 2.2, bike: 6, drive: 14 }
+const BOOST = 2.5
+const PACE_KEYS: Record<string, Pace> = { Digit1: 'walk', Digit2: 'bike', Digit3: 'drive' }
 const RADIUS = 0.45     // how close you can get to a wall
 const LOOK_SPEED = 0.0022
 const MIN_CLEARANCE = 5  // m; the map camera never goes lower above the ground
@@ -19,6 +22,7 @@ const MIN_CLEARANCE = 5  // m; the map camera never goes lower above the ground
  */
 export class Controls {
   mode: Mode = 'map'
+  pace: Pace = 'walk'
   readonly map: MapControls
   readonly touch: TouchMap
   private yaw = 0
@@ -27,6 +31,7 @@ export class Controls {
   private stick = new Vector2() // virtual joystick, -1..1
   private ray = new Raycaster()
   onModeChange: (m: Mode) => void = () => {}
+  onPaceChange: (p: Pace) => void = () => {}
 
   private down = new Raycaster()
   private lastGroundCheck = new Vector3(Infinity, 0, 0)
@@ -53,6 +58,7 @@ export class Controls {
     addEventListener('keydown', (e) => {
       if (e.target instanceof HTMLInputElement) return
       this.keys.add(e.code)
+      if (this.mode === 'walk' && PACE_KEYS[e.code]) this.setPace(PACE_KEYS[e.code])
     })
     addEventListener('keyup', (e) => this.keys.delete(e.code))
     addEventListener('blur', () => this.keys.clear())
@@ -109,6 +115,11 @@ export class Controls {
     this.touch.enabled = mode === 'map'
     if (mode === 'map' && document.pointerLockElement) document.exitPointerLock()
     this.onModeChange(mode)
+  }
+
+  setPace(p: Pace): void {
+    this.pace = p
+    this.onPaceChange(p)
   }
 
   setStick(x: number, y: number): void {
@@ -173,7 +184,8 @@ export class Controls {
     this.followGround(dt)
     const len = Math.hypot(fwd, side)
     if (len < 0.01) return
-    const speed = (k.has('ShiftLeft') || k.has('ShiftRight') ? RUN_SPEED : WALK_SPEED) * Math.min(len, 1)
+    const boost = k.has('ShiftLeft') || k.has('ShiftRight') ? BOOST : 1
+    const speed = PACE_SPEED[this.pace] * boost * Math.min(len, 1)
     const f = new Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw))
     const r = new Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw))
     const move = f.multiplyScalar(fwd / len).addScaledVector(r, side / len).multiplyScalar(speed * dt)

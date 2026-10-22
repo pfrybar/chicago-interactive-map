@@ -67,6 +67,13 @@ rule rail:
     params: areas=",".join(map(str, AREAS))
     shell: PY + " rail --areas {params.areas}"
 
+rule structures:
+    # Per-block overpass deck profiles are cached in data/work/structures/ (by settings).
+    input: rules.lidar.output, code("structures", "rail", "lidar", "lidar2022")
+    output: touch(f"data/work/structures/{BUILD}.done")
+    params: areas=",".join(map(str, AREAS))
+    shell: PY + " structures --areas {params.areas}"
+
 rule trees:
     # Per-block tree lists are cached in data/work/trees/; existing blocks are skipped.
     input: rules.lidar.output, code("trees", "lidar", "lidar2022")
@@ -81,9 +88,10 @@ rule tiles:
         rules.roofs.output,
         rules.rail.output,
         rules.trees.output,
+        rules.structures.output,
         expand("data/work/area-{area}/buildings.parquet", area=AREAS),
         rules.osm_features.output,
-        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap", "rail", "trees", "osm_history", "lidar", "overrides", "accuracy"),
+        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap", "rail", "trees", "osm_history", "lidar", "overrides", "accuracy", "structures", "water"),
     output: f"data/builds/{BUILD}/tileset.json"
     params: areas=",".join(map(str, AREAS))
     threads: workflow.cores

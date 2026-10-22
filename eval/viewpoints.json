@@ -24,6 +24,8 @@
     {"name": "metra-55th-street", "area": 41, "mode": "map", "position": [3420, -9670, 24], "target": [3388, -9638, 7], "note": "Metra Electric over 55th Street, Hyde Park (audit I07)"},
     {"name": "washington-park-wabash", "area": 40, "mode": "map", "position": [500, -10300, 140], "target": [346, -10061, 15], "note": "Wabash Avenue blocks in Washington Park (audit I03)"},
     {"name": "sheridan-glen", "area": 77, "mode": "map", "position": [-2480, 12080, 90], "target": [-2324, 12230, 20], "note": "Sheridan Road high-rises in Edgewater (audit I02)"},
+    {"name": "jane-byrne-interchange", "area": 28, "mode": "map", "position": [-1050, -1150, 140], "target": [-1295, -757, 0], "note": "The Kennedy, Dan Ryan and Eisenhower meeting at the Jane Byrne interchange, from the southeast"},
+    {"name": "union-station-tracks", "area": 28, "mode": "map", "position": [-700, -1700, 90], "target": [-900, -1250, 0], "note": "The tracks into Union Station from the south, under the Roosevelt and Taylor viaducts"},
     {"name": "belmont-station", "area": 6, "mode": "map", "position": [-1950, 6250, 60], "target": [-2115, 6396, 6], "note": "Red, Brown and Purple Lines at Belmont"},
     {"name": "damen-blue-line", "area": 24, "mode": "map", "position": [-3950, 3000, 50], "target": [-4115, 3142, 6], "note": "Blue Line over Milwaukee Avenue at Damen, Wicker Park"},
     {"name": "city-overview", "area": null, "mode": "map", "position": [9000, -26000, 14000], "target": [-6000, 0, 0], "note": "The whole city from high over the lake to the southeast"},

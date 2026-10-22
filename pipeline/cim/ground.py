@@ -141,8 +141,11 @@ def raw_layers(feats, extent: Polygon) -> dict[str, shapely.Geometry]:
     """Every ground layer inside `extent`, before overlaps are removed."""
     hw = feats["highway"]
     lines = feats.geometry.geom_type == "LineString"
-    roads = feats[hw.isin(ROAD_WIDTH.keys()) & lines]
     on_bridge = feats["bridge"].notna() & (feats["bridge"] != "no") & lines
+    # Overpasses are drawn as structures (structures.py), not painted on the ground.
+    from .structures import overpasses
+    lines &= ~feats["osm_id"].isin(set(overpasses(feats, extent.bounds)["osm_id"]))
+    roads = feats[hw.isin(ROAD_WIDTH.keys()) & lines]
     out = {
         # Not drawn: where walls along the water must stay open (under bridges).
         "bridge": unary_union([

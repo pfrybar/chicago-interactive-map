@@ -31,6 +31,10 @@ def main() -> None:
     ra.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
     ra.add_argument("--force", action="store_true", help="redo blocks that already have outputs")
 
+    st = sub.add_parser("structures", help="deck heights of road overpasses from lidar, per 2 km block")
+    st.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
+    st.add_argument("--force", action="store_true", help="redo blocks that already have outputs")
+
     tr = sub.add_parser("trees", help="tree positions and sizes from lidar, per 2 km block")
     tr.add_argument("--areas", required=True, help="comma-separated community area numbers, or 'all'")
     tr.add_argument("--force", action="store_true", help="redo blocks that already have outputs")
@@ -102,6 +106,12 @@ def main() -> None:
         from .tiles import build_leaves
         areas = list(range(1, 78)) if a.areas == "all" else [int(x) for x in a.areas.split(",")]
         rail.run({leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}, a.force)
+    elif a.cmd == "structures":
+        from . import structures
+        from .grid import BLOCK_LEVEL
+        from .tiles import build_leaves
+        areas = list(range(1, 78)) if a.areas == "all" else [int(x) for x in a.areas.split(",")]
+        structures.run({leaf.ancestor(BLOCK_LEVEL) for leaf in build_leaves(areas)}, a.force)
     elif a.cmd == "trees":
         from . import trees
         from .grid import BLOCK_LEVEL

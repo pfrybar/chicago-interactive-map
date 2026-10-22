@@ -51,6 +51,8 @@ MATERIALS = {
     "wall": (0.62, 0.60, 0.56, 1.0),
     "rail": (0.52, 0.48, 0.44, 1.0),
     "steel": (0.25, 0.27, 0.26, 1.0),
+    "concrete": (0.70, 0.69, 0.66, 1.0),
+    "deck": (0.50, 0.50, 0.51, 1.0),
     "rails": (0.55, 0.53, 0.50, 1.0),
     "ballast": (0.45, 0.42, 0.39, 1.0),
     "platform": (0.70, 0.69, 0.66, 1.0),
@@ -267,7 +269,7 @@ def _skip_walls(bounds, bridges, eps: float = 0.02):
 
 
 def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | None = None,
-                rail=None, trees=None) -> dict | None:
+                rail=None, trees=None, decks=None) -> dict | None:
     """Write one tile's GLB. Returns its metadata, or None if it would be empty."""
     from shapely.geometry.polygon import orient
     meshes = []
@@ -309,10 +311,20 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
     top, bottom = 1.0, water_z - 1.0
     if rail is not None and key.level <= 2:
         from . import rail as railmod
-        tracks, platforms, profiles = rail
-        parts = railmod.track_meshes(tracks, profiles, dem, key.bounds, key.level)
+        tracks, platforms, profiles, footprints = rail
+        parts = railmod.track_meshes(tracks, profiles, dem, key.bounds, key.level, footprints)
         if key.level == 0:
             parts |= railmod.platform_meshes(platforms, tracks, profiles, dem, key.bounds)
+        for name, mb in parts.items():
+            if (arr := mb.arrays()) is not None:
+                arr.pop("_FEATURE_ID_0")
+                meshes.append({"name": name, "material": MAT_INDEX[name], "arrays": arr})
+                top = max(top, float(arr["POSITION"][:, 1].max()))
+    if decks is not None and key.level <= 1:
+        from .structures import deck_meshes, trench_walls
+        ways, deck_profiles, feats_for_walls = decks
+        parts = deck_meshes(ways, deck_profiles, dem, key.bounds, key.level)
+        trench_walls(feats_for_walls, dem, key.bounds, key.level, parts["concrete"])
         for name, mb in parts.items():
             if (arr := mb.arrays()) is not None:
                 arr.pop("_FEATURE_ID_0")
@@ -385,7 +397,10 @@ def _block_job(args):
     dem = load_dem(block)
     roofs = load_roofs(block)
     neighbors = [Key(block.level, block.i + a, block.j + b) for a in (-1, 0, 1) for b in (-1, 0, 1)]
-    rail = (railways(feats), platforms_from(feats), load_profiles(neighbors))
+    footprints = buildings.geometry.values if buildings is not None and len(buildings) else None
+    rail = (railways(feats), platforms_from(feats), load_profiles(neighbors), footprints)
+    from . import structures
+    decks = (structures.overpasses(feats), structures.load_profiles(neighbors), feats)
     from .trees import load as load_trees
     trees = load_trees(block)
 
@@ -403,7 +418,7 @@ def _block_job(args):
                           & (buildings["cy"] >= key.bounds[1]) & (buildings["cy"] < key.bounds[3]))
                 tb = buildings[inside]
             meta = _write_tile(out_dir, key, ground, tb if tb is not None else [], dem,
-                               roofs if level == 0 else None, rail, trees)
+                               roofs if level == 0 else None, rail, trees, decks)
             if meta:
                 metas[key] = meta
             if level == BLOCK_LEVEL:

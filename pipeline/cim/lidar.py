@@ -374,6 +374,10 @@ def _block_job(args):
     hw = feats["highway"]
     on_bridge = (feats["bridge"].notna() & (feats["bridge"] != "no") & (feats.geometry.geom_type == "LineString")
                  & (hw.isin(ROAD_WIDTH.keys()) | hw.isin(PATH_WIDTH.keys())))
+    # Overpasses are drawn as structures (structures.py); only bridges over water stay in
+    # the ground model, so what passes under an overpass keeps its own level.
+    from .structures import overpasses
+    on_bridge &= ~feats["osm_id"].isin(set(overpasses(feats, grown)["osm_id"]))
     road_bridges = shapely.union_all(feats[on_bridge].geometry.buffer(12, cap_style="flat").values) \
         if on_bridge.any() else None
     if road_bridges is not None:

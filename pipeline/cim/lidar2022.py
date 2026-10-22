@@ -38,6 +38,12 @@ FT = 0.3048006096012192
 DROP = {7, 13, 14, 16, 20}  # low noise, wire guard/conductor/connector, ignore ground
 REMAP = {11: 2, 15: 1, 18: 1}  # road surface -> ground; tower, high noise -> unclassified
 Z_MAX, Z_MIN = 460.0, -30.0  # local meters
+# The rest of "high noise" is real noise: lone returns up to 270 m over warehouses and
+# rail yards, which turned small sheds into towers. Remapped, it's in class 1, so an
+# unclassified point needs company at about its height. Some dark tower roofs return only
+# a point every few m² (Leo Burnett), so the neighborhood is wide and flat: 12 × 12 × 6 m.
+ISOLATED_VOXEL = (4.0, 4.0, 2.0)  # m; the neighborhood is the 3×3×3 voxels around a point
+ISOLATED_MIN = 3                   # other points needed there
 
 
 def _cfg() -> dict:
@@ -205,11 +211,34 @@ def read_points(bounds_local, depth: int | None = None):
         x, y = np.asarray(las.x), np.asarray(las.y)
         m = (x >= x0) & (x < x1) & (y >= y0) & (y < y1)
         if m.any():
-            parts.append((x[m], y[m], np.asarray(las.z)[m], np.asarray(las.classification)[m]))
+            parts.append(drop_isolated(x[m], y[m], np.asarray(las.z)[m], np.asarray(las.classification)[m]))
     if not parts:
         e = np.empty(0)
         return e, e, e, np.empty(0, np.uint8)
     return tuple(np.concatenate(p) for p in zip(*parts))
+
+
+def drop_isolated(x, y, z, c):
+    """Drop unclassified points with fewer than ISOLATED_MIN other points nearby."""
+    u = c == 1
+    if not u.any():
+        return x, y, z, c
+    v = np.floor(np.c_[x, y, z] / np.array(ISOLATED_VOXEL)).astype(np.int64)
+    v -= v.min(axis=0) - 1
+    span = v.max(axis=0) + 2
+    key = (v[:, 0] * span[1] + v[:, 1]) * span[2] + v[:, 2]
+    cells, counts = np.unique(key, return_counts=True)
+    ku = key[u]
+    near = np.zeros(len(ku), np.int64)
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for dz in (-1, 0, 1):
+                k = ku + (dx * span[1] + dy) * span[2] + dz
+                at = np.minimum(np.searchsorted(cells, k), len(cells) - 1)
+                near += np.where(cells[at] == k, counts[at], 0)
+    keep = np.ones(len(x), bool)
+    keep[np.flatnonzero(u)[near - 1 < ISOLATED_MIN]] = False  # near counts the point itself
+    return x[keep], y[keep], z[keep], c[keep]
 
 
 def tiles_in(polygon) -> list[str]:

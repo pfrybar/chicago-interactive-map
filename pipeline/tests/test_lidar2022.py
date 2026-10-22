@@ -3,7 +3,7 @@ import numpy as np
 from pyproj import Transformer
 
 from cim.frame import local_frame
-from cim.lidar2022 import FT, STATE_PLANE, convert
+from cim.lidar2022 import FT, STATE_PLANE, convert, drop_isolated
 
 
 def _write_tile(path, n=40_000):
@@ -36,3 +36,20 @@ def test_convert_thins_drops_noise_and_moves_to_local_meters(tmp_path):
     assert 0.8 * expected < kept < 1.2 * expected
     assert abs(np.median(las.z) - (600 * FT - 181.0)) < 0.02   # NAVD88 feet -> local meters
     assert np.asarray(las.x).min() > -5 and np.asarray(las.x).max() < 40   # local meters near the origin
+
+
+def test_drop_isolated_keeps_sparse_roofs_and_drops_lone_returns():
+    rng = np.random.default_rng(2)
+    # A dark tower roof: unclassified, one point per 5 m² over 40 × 40 m, at 180 ± 0.3 m.
+    n = 320
+    roof = (rng.random(n) * 40, rng.random(n) * 40, 180 + rng.normal(0, 0.3, n), np.ones(n, np.uint8))
+    # Noise over a shed next to it: lone returns at random heights.
+    k = 30
+    noise = (100 + rng.random(k) * 40, rng.random(k) * 40, 10 + rng.random(k) * 250, np.ones(k, np.uint8))
+    # Ground under both, which is never dropped however sparse.
+    ground = (np.array([20.0, 120.0]), np.array([20.0, 20.0]), np.zeros(2), np.full(2, 2, np.uint8))
+    x, y, z, c = (np.concatenate(p) for p in zip(roof, noise, ground))
+    kx, ky, kz, kc = drop_isolated(x, y, z, c)
+    assert (kz > 170).sum() >= 0.97 * n
+    assert ((kx >= 100) & (kc == 1)).sum() <= 2
+    assert (kc == 2).sum() == 2

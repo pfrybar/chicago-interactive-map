@@ -109,7 +109,9 @@ Citywide systems (the L, tree generation, materials) are built as generators tha
 ## Gotchas
 
 - The viewer's compose service is named `web`, not `app`: Chromium forces HTTPS for any host named `app`. Vite also needs `web` in `server.allowedHosts`.
-- `/builds/*` is served from `data/builds` by the `serveBuilds` plugin in `app/vite.config.ts`, gzipped, in both dev and preview. Don't put builds under `app/public/`: `vite build` would copy over a gigabyte of tiles into `dist/`.
+- `/builds/*` is served from `data/builds` by the `serveBuilds` plugin in `app/vite.config.ts`, in both dev and preview. Don't put builds under `app/public/`: `vite build` would copy over a gigabyte of tiles into `dist/`.
+  - Browsers that accept Brotli (HTTPS only: the shared link) get `<file>.br`. That's written by `./dev precompress` (which `./dev share` runs) or on a file's first request, and is about a quarter of raw against 44% for gzip. Plain HTTP (dev server, eval) gets gzip on the fly.
+  - Tile URLs carry the build's `created_at` as `?v=` (a plugin in `city.ts`) and are cached for a year; a rebuild changes it. Unversioned files are revalidated. `eval/netstats.mjs` measures what a phone downloads per view.
 - The sky draws first (`renderOrder -20`) and the base plane second, both without writing depth. Anything drawn before the sky gets painted over.
 - Ground layers never overlap (each has the layers above it cut out; see `LAYER_ORDER`), so they all sit at height 0. The plain base plane is drawn first without depth writes. Don't reintroduce stacked heights: phones with 16-bit depth buffers z-fight.
 - Ground is triangulated in 125 m cells (`GROUND_CELL`, scaled up per level); earcut is unreliable on whole-tile polygons with many holes. `clip_by_rect` can return invalid geometry; use `_clip_cell` or `make_valid` after it.

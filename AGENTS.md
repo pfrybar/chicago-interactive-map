@@ -59,7 +59,8 @@ Dependency versions are pinned exactly. When adding or upgrading one, pick a rel
 - **Allowed imagery for agents:** Mapillary and KartaView (CC-BY-SA; log every image used in `data/attribution/`), Wikimedia Commons and Flickr images whose license allows modification (check each one), and photos contributed to this project.
 - **Never use Google or Apple map content in any form:** Google Maps, Street View, Earth, Photorealistic 3D Tiles, Apple Maps, Look Around, Flyover. That includes viewing it to "just check" a building's color. Their terms forbid creating map content from it, and it would contaminate the OSM-derived data. Treat their domains as blocked in any browser tool.
 - **Don't edit OpenStreetMap automatically.** If you find an OSM error (wrong height, missing building), record it as a note in `agent/state/areas.yaml` or an issue for a person to fix. OSM's Automated Edits code of conduct applies.
-- Fixes to our own output will go in `data/overrides/<area>/`, keyed by the stable building `id` (`chi:<city bldg_id>` or `osm:<w|r><id>`). The pipeline doesn't read overrides yet; add that before the first verify pass. Never hand-edit tiles.
+- **Cook County 2025 orthophotos:** use them only locally, through `python -m cim ortho`. Their terms forbid redistributing them or making them available over a network without the county's permission (requested 2026-10-21). Never commit them, crops of them, or screenshots showing them, and never put them in a PR. Tag anything derived from them `evidence: cook_ortho_2025`.
+- Fixes to our own output go in `data/overrides/<area>.yaml`, keyed by the stable building `id` (`chi:<city bldg_id>` or `osm:<w|r><id>`). Never hand-edit tiles.
 
 ## The neighborhood walk
 
@@ -90,13 +91,20 @@ Citywide systems (the L, tree generation, materials) are built as generators tha
 - If a build is killed, Snakemake leaves a lock: run `docker compose run --rm pipeline snakemake -s pipeline/Snakefile -d . --cores 1 --unlock`.
 - roofer is GPL-3.0 and runs as a subprocess from the release binary (Debian trixie image; it needs glibc 2.38+). It rejects custom coordinate systems, so don't pass `--srs`. It sometimes crashes on a footprint or spins on one forever; `_roofer` treats both (a timeout scaled to the number of footprints) as failures and bisects, and those buildings keep a plain extrusion. It reads the CRS from the footprints GeoPackage, and the points are in the same local meters.
 
+- Two lidar surveys are supported (`lidar.source`, or `CIM_LIDAR_SOURCE` for one run): `ept2017` (USGS, the default) and `cook2022` (Cook County, `lidar2022.py`). The 2022 tiles are fetched on demand or with `python -m cim lidar-fetch --areas …`, thinned to 8 points/m² and kept as LAZ; each survey has its own work folders (`lidar_work()`). The county's "high noise" class is mostly tower roofs, so it's kept, except points with almost nothing else within a few meters at their height (`drop_isolated`): those are real noise, and turned sheds into towers. Beyond 250 m outside the city, and outside Cook County, 2017 fills in.
+- The newer-than-lidar rule checks OSM version history (`osm_history.py`): a height tag already on the map before the survey isn't evidence of a newer building, so the lidar wins.
+- Water: each mapped body under 1 km² gets its own level from the lidar (`water.py`): water returns, else interior ground returns, else the shore minus 0.5 m. The lake, the river system and anything within 30 m of them stay at `water_level`.
+
 ## The L, trees and overrides
 
-- Railways: `rail.railways()` keeps above-ground rail; `is_l` means CTA (`railway=subway|light_rail`), and `elevated` means `bridge` or `layer>0`. Each track is its own OSM way. Deck height = the lidar's top surface sampled along the track (`data/work/rail/`), cleaned and smoothed; it falls back to ground + 7.5 m.
+- Railways: `rail.railways()` keeps above-ground rail; `is_l` means CTA (`railway=subway|light_rail`), and `elevated` means `bridge` or `layer>0`. Each track is its own OSM way. Deck height = the lidar's top surface sampled along the track (`data/work/rail/`), without samples near platforms and station roofs, then `fit_profile`: a wide median, outliers dropped, grade capped at 5%. It falls back to ground + 7.5 m.
 - Segments are drawn by the tile containing their midpoint, and columns sit at fixed chainages from each way's start, so tiles join without duplicates. Keep that property when changing `track_meshes`.
+- Tree tops need a crown (`MIN_CROWN_CELLS` in `trees.py`, more above `TALL_M`): the lidar classes light poles, signals and facade points as vegetation. The thresholds were set with `python -m cim ortho`, which reports trees with no vegetation under them in the 2025 orthophotos. Cached tree blocks are redone when `trees.settings()` changes. With the 2022 survey, trees are the 2022 detections plus the 2017 trees that 2022 vegetation points still confirm (`add_confirmed_2017`): the 2022 flight was early in the leaf-out. So run the trees step with `ept2017` first.
 - Trees are instanced (`EXT_mesh_gpu_instancing`), so their GLB positions are float, not quantized (see `gltf.py`). There are about 3.1 million, so they drive the triangle budget. Crowns are 16 triangles. Trees don't cast shadows. Each street-level tile carries a full set and a thinned `foliage_far` set, and the viewer shows the full set only within `TREE_NEAR` (500 m) of the camera.
 - The eval budget is 3.5M triangles per viewpoint, shadows included. The densest view, Grant Park, is about 3.0M.
-- Overrides are the only way to fix generated output. Every entry needs a `reason`, plus `evidence` when there is one. Building ids come from the building card or `accuracy.json`. Snakemake rebuilds tiles when an override file changes.
+- Trees aren't placed in the inner 80% of road carriageways, on tracks, or within 8 m of elevated rail.
+- Bridges over water get a continuous deck: gaps under 5 m between separately mapped lanes and sidewalks are filled (`_bridge_decks` in `ground.py`).
+- Overrides are the only way to fix generated output. Every entry needs a `reason`, plus `evidence` when there is one. `min_height` can be set too, with `height`, for floating parts. Building ids come from the building card or `accuracy.json`. Snakemake rebuilds tiles when an override file changes.
 
 ## Gotchas
 

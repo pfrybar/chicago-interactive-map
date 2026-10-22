@@ -15,12 +15,16 @@ const evalMode = params.has('eval')
 if (evalMode) document.body.classList.add('eval')
 
 const HEIGHT_SOURCES: Record<string, string> = {
-  lidar: 'measured by USGS lidar, 2017',
+  lidar: 'measured by lidar',
   override: 'corrected after review',
   'osm:height': 'OpenStreetMap height',
   'osm:levels': 'from OpenStreetMap floor count',
   'city:stories': 'from City of Chicago floor count',
   default: 'estimate, no height data yet',
+}
+const LIDAR_SURVEYS: Record<string, string> = {
+  ept2017: 'measured by USGS lidar, 2017',
+  cook2022: 'measured by Cook County lidar, 2022',
 }
 const HELP: Record<Mode, string> = {
   map: 'Drag to pan. Right-drag or two fingers to tilt and turn. Scroll or pinch to zoom. Click a building for details.',
@@ -52,6 +56,7 @@ async function start() {
   ;(window as any).__cimDebug = { stage, city, controls }
 
   // Panel text
+  HEIGHT_SOURCES.lidar = LIDAR_SURVEYS[build.report.lidar ?? 'ept2017'] ?? HEIGHT_SOURCES.lidar
   const areaCount = build.report.areas.length
   const areaText = areaCount === 1 ? build.report.areas[0].name : `${areaCount} community areas`
   $('build-info').textContent = `${areaText} · ${build.report.buildings.toLocaleString()} buildings`

@@ -46,7 +46,7 @@ rule lidar:
     # Per-block outputs are cached in data/work/lidar/; blocks that already exist are skipped.
     input:
         expand("data/work/area-{area}/buildings.parquet", area=AREAS),
-        code("lidar", "tiles", "grid"),
+        code("lidar", "lidar2022", "tiles", "grid"),
     output: touch(f"data/work/lidar/{BUILD}.done")
     params: areas=",".join(map(str, AREAS))
     threads: workflow.cores
@@ -54,7 +54,7 @@ rule lidar:
 
 rule roofs:
     # Per-block roofer outputs are cached in data/work/roofs/; existing blocks are skipped.
-    input: rules.lidar.output, code("roofs", "lidar", "tiles")
+    input: rules.lidar.output, code("roofs", "lidar", "lidar2022", "tiles")
     output: touch(f"data/work/roofs/{BUILD}.done")
     params: areas=",".join(map(str, AREAS))
     threads: workflow.cores
@@ -62,14 +62,14 @@ rule roofs:
 
 rule rail:
     # Per-block deck profiles are cached in data/work/rail/; existing blocks are skipped.
-    input: rules.lidar.output, code("rail", "lidar")
+    input: rules.lidar.output, code("rail", "lidar", "lidar2022")
     output: touch(f"data/work/rail/{BUILD}.done")
     params: areas=",".join(map(str, AREAS))
     shell: PY + " rail --areas {params.areas}"
 
 rule trees:
     # Per-block tree lists are cached in data/work/trees/; existing blocks are skipped.
-    input: rules.lidar.output, code("trees", "lidar")
+    input: rules.lidar.output, code("trees", "lidar", "lidar2022")
     output: touch(f"data/work/trees/{BUILD}.done")
     params: areas=",".join(map(str, AREAS))
     shell: PY + " trees --areas {params.areas}"
@@ -83,7 +83,7 @@ rule tiles:
         rules.trees.output,
         expand("data/work/area-{area}/buildings.parquet", area=AREAS),
         rules.osm_features.output,
-        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap", "rail", "trees"),
+        code("tiles", "ground", "grid", "mesh", "gltf", "frame", "minimap", "rail", "trees", "osm_history", "lidar", "overrides", "accuracy"),
     output: f"data/builds/{BUILD}/tileset.json"
     params: areas=",".join(map(str, AREAS))
     threads: workflow.cores

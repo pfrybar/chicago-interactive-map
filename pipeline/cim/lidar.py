@@ -28,7 +28,7 @@ import shapely
 from pyproj import Transformer
 from scipy import ndimage
 
-from .config import RAW, WORK, load_config, load_sources
+from .config import RAW, WORK, lidar_source, lidar_work, lidar_workers, load_config, load_sources
 from .frame import local_frame
 from .grid import BLOCK_LEVEL, Key
 
@@ -38,12 +38,20 @@ from .grid import BLOCK_LEVEL, Key
 _FRESH = multiprocessing.get_context("forkserver")
 
 LIDAR_RAW = RAW / "lidar_cook_2017"
-LIDAR_WORK = WORK / "lidar"
+LIDAR_WORK = lidar_work("lidar")
 DEM_CELL = 2.0
 MARGIN = 40.0  # meters of extra data around each block, so DEMs agree at block seams
 
 GROUND, NOISE, WATER, BRIDGE, HIGH_NOISE = 2, 7, 9, 17, 18
 BUILDING = 6
+UNCLASSIFIED = 1
+
+
+def survey_start():
+    """When the configured lidar survey began flying (UTC)."""
+    from datetime import datetime, timezone
+    day = {"ept2017": (2017, 3, 1), "cook2022": (2022, 4, 5)}[lidar_source()]
+    return datetime(*day, tzinfo=timezone.utc)
 
 
 def cfg() -> dict:
@@ -124,7 +132,15 @@ def _to_local() -> Transformer:
 
 
 def read_points(bounds_local, depth: int):
-    """Points inside a local-frame box: (x, y, z_local, classification, number_of_returns)."""
+    """Points inside a local-frame box: (x, y, z_local, classification), from the configured survey."""
+    if lidar_source() == "cook2022":
+        from .lidar2022 import read_points as read_2022
+        return read_2022(bounds_local)
+    return _read_ept(bounds_local, depth)
+
+
+def _read_ept(bounds_local, depth: int):
+    """2017 points from the EPT octree, read down to `depth`."""
     x0, y0, x1, y1 = bounds_local
     inv = Transformer.from_crs(local_frame().crs, "EPSG:3857", always_xy=True)
     xs, ys = inv.transform([x0, x1, x0, x1], [y0, y0, y1, y1])
@@ -252,11 +268,24 @@ def roof_stats(buildings: gpd.GeoDataFrame, x, y, z, cls_, dem: Dem) -> pd.DataF
             # Classes are unreliable downtown (rooftops classed as vegetation), but in
             # neighborhoods trees overhang houses. Trust building-class points when they dominate.
             use = bld if len(bld) >= 0.3 * len(g) else g
+            if use is bld and len(bld):
+                # ...unless many unclassified points stand well above them: in 2022, tower
+                # roofs are often unclassified while the podium and walls are "building"
+                # (Leo Burnett read 17 m instead of 183 m). Vegetation still never counts.
+                # They must cover the footprint like a roof, not hug an edge like the wall of
+                # the tower next door (Loop Synagogue read 220 m from its neighbor's facade).
+                top = np.percentile(bld["z"].values, 95)
+                over = g[(g["c"] == UNCLASSIFIED) & (g["z"] > top + 3.0)]
+                if len(over) >= max(20, 0.1 * len(bld)):
+                    cells = len(set(zip((px[pt_idx[over.index]] // 2).astype(int),
+                                        (py[pt_idx[over.index]] // 2).astype(int))))
+                    if cells >= 0.25 * area[k] / 4.0:
+                        use = g[(g["c"] == BUILDING) | (g["c"] == UNCLASSIFIED)]
             zs = use["z"].values
-            rec.update(n=len(g), n_used=len(use), classes="building" if use is bld else "all",
+            rec.update(n=len(g), n_used=len(use), classes="building" if use is bld else ("all" if use is g else "building+unclassified"),
                        p50=float(np.percentile(zs, 50)), p75=float(np.percentile(zs, 75)),
                        p90=float(np.percentile(zs, 90)), p95=float(np.percentile(zs, 95)),
-                       p98=float(np.percentile(zs, 98)))
+                       p98=float(np.percentile(zs, 98)), zmax=float(zs.max()))
         out.append(rec)
     return pd.DataFrame(out)
 
@@ -366,6 +395,9 @@ def _block_job(args):
 def run(blocks: dict, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     """Process every block in `blocks` without current outputs (or all, with force)."""
     LIDAR_WORK.mkdir(parents=True, exist_ok=True)
+    if lidar_source() == "cook2022":
+        from .lidar2022 import fetch_for
+        fetch_for(blocks)
     depth = cfg()["depth"]
     tmp = WORK / "lidar-tmp"
     tmp.mkdir(parents=True, exist_ok=True)
@@ -385,7 +417,7 @@ def run(blocks: dict, buildings: gpd.GeoDataFrame, force: bool = False) -> None:
     if not jobs:
         print("  lidar: all blocks up to date")
         return
-    workers = cfg()["workers"]
+    workers = lidar_workers(cfg()["workers"])
     print(f"  lidar: {len(jobs)} blocks to process at depth {depth}, {workers} workers")
     t0 = time.time()
     with ProcessPoolExecutor(mp_context=_FRESH, max_workers=workers) as pool:
@@ -402,19 +434,24 @@ def load_dem(key: Key) -> Dem | None:
 
 
 def record_lock() -> None:
-    """Record what was read from the survey in sources.lock.json."""
+    """Record what was read from the survey in sources.lock.json (only when it changed)."""
     import hashlib
     from datetime import datetime, timezone
     from .config import LOCK_FILE
-    files = list((LIDAR_RAW / "ept-data").glob("*.laz"))
     lock = json.loads(LOCK_FILE.read_text()) if LOCK_FILE.exists() else {}
-    lock["lidar_cook_2017"] = {
-        "url": load_sources()["lidar_cook_2017"]["url"],
-        "ept_json_sha256": hashlib.sha256((LIDAR_RAW / "ept.json").read_bytes()).hexdigest(),
-        "depth": cfg()["depth"],
-        "nodes_cached": len(files),
-        "bytes": sum(f.stat().st_size for f in files),
-        "retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "license": load_sources()["lidar_cook_2017"]["license"],
-    }
+    if lidar_source() == "cook2022":
+        from .lidar2022 import RAW_2022
+        name, files = "lidar_cook_2022", sorted(RAW_2022.glob("*.laz"))
+        entry = {"url": load_sources()[name]["url"], "density": cfg()["cook2022_density"],
+                 "tiles_cached": len(files), "bytes": sum(f.stat().st_size for f in files)}
+    else:
+        name, files = "lidar_cook_2017", list((LIDAR_RAW / "ept-data").glob("*.laz"))
+        entry = {"url": load_sources()[name]["url"],
+                 "ept_json_sha256": hashlib.sha256((LIDAR_RAW / "ept.json").read_bytes()).hexdigest(),
+                 "depth": cfg()["depth"], "nodes_cached": len(files), "bytes": sum(f.stat().st_size for f in files)}
+    old = {k: v for k, v in lock.get(name, {}).items() if k not in ("retrieved_at", "license")}
+    if old == entry:
+        return
+    lock[name] = entry | {"retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                          "license": load_sources()[name]["license"]}
     LOCK_FILE.write_text(json.dumps(dict(sorted(lock.items())), indent=2) + "\n")

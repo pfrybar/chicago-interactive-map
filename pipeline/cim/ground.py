@@ -122,13 +122,28 @@ def lake_from_coastline(coast_lines, extent: Polygon) -> shapely.Geometry:
     return unary_union(water) if water else Polygon()
 
 
+DECK_GAP = 2.5  # m; gaps narrower than twice this between a bridge's roadways and sidewalks are filled
+
+
+def _bridge_decks(feats, on_bridge, hw, water) -> shapely.Geometry:
+    """Where a road bridge's separately mapped lanes and sidewalks leave open water between
+    them (the Clark Street bridge showed 2.5 m slots), fill the deck. Only over water."""
+    sel = feats[on_bridge & (hw.isin(ROAD_WIDTH.keys()) | hw.isin(PATH_WIDTH.keys()))]
+    if not len(sel) or water.is_empty:
+        return Polygon()
+    strips = unary_union([r.geometry.buffer(_width(r, ROAD_WIDTH if r["highway"] in ROAD_WIDTH else PATH_WIDTH) / 2,
+                                            cap_style="flat") for _, r in sel.iterrows() if not _is_lower_level(r)])
+    closed = strips.buffer(DECK_GAP, join_style="mitre").buffer(-DECK_GAP, join_style="mitre")
+    return shapely.make_valid(closed.difference(strips).intersection(water))
+
+
 def raw_layers(feats, extent: Polygon) -> dict[str, shapely.Geometry]:
     """Every ground layer inside `extent`, before overlaps are removed."""
     hw = feats["highway"]
     lines = feats.geometry.geom_type == "LineString"
     roads = feats[hw.isin(ROAD_WIDTH.keys()) & lines]
     on_bridge = feats["bridge"].notna() & (feats["bridge"] != "no") & lines
-    return {
+    out = {
         # Not drawn: where walls along the water must stay open (under bridges).
         "bridge": unary_union([
             g.buffer(_width(r, ROAD_WIDTH if r["highway"] in ROAD_WIDTH else PATH_WIDTH) / 2 + 1.0, cap_style="flat")
@@ -154,6 +169,10 @@ def raw_layers(feats, extent: Polygon) -> dict[str, shapely.Geometry]:
             | feats["natural"].isin(GREEN["natural"])
         ], extent),
     }
+    deck = _bridge_decks(feats, on_bridge, hw, out["water"])
+    if not deck.is_empty:
+        out["road"] = unary_union([out["road"], deck])
+    return out
 
 
 def stack(raw: dict, extent: Polygon, layers: list[str], simplify: float = 0.0) -> dict[str, MultiPolygon]:
@@ -168,10 +187,14 @@ def stack(raw: dict, extent: Polygon, layers: list[str], simplify: float = 0.0) 
         g = raw.get(layer)
         if g is None or g.is_empty:
             continue
-        g = shapely.make_valid(shapely.clip_by_rect(g, *extent.bounds))
+        # Stray lines left by make_valid can make the overlay below fail, so keep polygons only.
+        g = _clean(shapely.make_valid(shapely.clip_by_rect(g, *extent.bounds)))
         if simplify:
-            g = shapely.make_valid(g.simplify(simplify))
-        g = g.difference(above)
+            g = _clean(shapely.make_valid(g.simplify(simplify)))
+        try:
+            g = g.difference(above)
+        except shapely.errors.GEOSException:
+            g = shapely.set_precision(g, 0.01).difference(shapely.set_precision(above, 0.01))
         above = unary_union([above, g])
         g = _clean(g)
         if not g.is_empty:

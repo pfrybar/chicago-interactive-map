@@ -19,7 +19,13 @@ ground_datum: 181.0
 water_level: 176.5
 
 lidar:
+  source: ept2017   # ept2017 (USGS 2017 EPT) or cook2022 (Cook County 2022 tiles); env CIM_LIDAR_SOURCE overrides
   depth: 9        # EPT octree depth to read; 9 is about 4 points/m², 10 is the full ~22
+  cook2022_density: 8   # points/m² kept from each 2022 county tile (the files have ~100)
+  cook2022_keep_las: false  # keep the 1.8 GB originals after converting (for debugging)
+  cook2022_downloads: 4    # county tiles downloaded and converted at once (~1 GB of memory each)
+  cook2022_margin: 250     # meters beyond the city that use 2022 tiles; farther out, 2017 fills in
+  cook2022_workers: 2      # cap on blocks at once for every lidar step with 2022 data (4 ran out of memory in 32 GB)
   workers: 8      # blocks processed at once (each holds ~10M points, ~2-3 GB, in memory)
   min_density: 0.5  # points/m² inside a footprint needed to trust a lidar height
 
@@ -29,6 +35,9 @@ tiles:
 roofs:
   workers: 5            # blocks reconstructed at once (each ~3 GB in Python plus ~2 GB in roofer)
   threads_per_block: 4  # roofer jobs within each block
+  cook2022_density: 0   # thin the 2022 points for roofer to this many per m² (0: all 8). At 4/m²,
+                        # 5% of an Old Town block's roofs overshot the lidar by >1 m; at 8, 1.3%
+  cook2022_workers: 3   # blocks at once with the 2022 survey (~6 GB each with roofer)
 
 # Square tiles on a fixed grid anchored 32 km southwest of the origin (see grid.py).
 tile_size: 500

@@ -4,7 +4,8 @@ data/overrides/<area>.yaml (for example data/overrides/32.yaml for the Loop):
 
     buildings:
       chi:880169:                       # a building id (chi:<city id> or osm:<w|r><id>)
-        height: 12.5                    # meters above its ground
+        height: 12.5                    # meters above its ground (top)
+        min_height: 10.5                # optional: bottom, for floating parts (roof slabs, skybridges)
         reason: Lidar caught a crane on the roof
         evidence: mapillary:123456789   # the image or source that shows it
       osm:w590536152:
@@ -31,7 +32,7 @@ from shapely.geometry import Polygon
 from .config import DATA
 
 OVERRIDES = DATA / "overrides"
-FIELDS = {"height", "hide", "flat_roof", "reason", "evidence"}
+FIELDS = {"height", "min_height", "hide", "flat_roof", "reason", "evidence"}
 
 
 class OverrideError(ValueError):
@@ -53,6 +54,8 @@ def load(area: int) -> dict:
         bad = set(fix) - FIELDS
         if bad:
             raise OverrideError(f"{path.name}: {bid} has unknown fields {sorted(bad)}")
+        if "min_height" in fix and ("height" not in fix or float(fix["min_height"]) >= float(fix["height"])):
+            raise OverrideError(f"{path.name}: {bid}: min_height needs a height above it")
     adds = doc.get("add") or []
     for a in adds:
         if not str(a.get("id", "")).startswith("fix:") or not a.get("reason") or "footprint" not in a:
@@ -78,6 +81,10 @@ def apply(buildings: gpd.GeoDataFrame, areas: list[int], dem_at) -> gpd.GeoDataF
             if "height" in fix:
                 b.loc[rows, "height"] = float(fix["height"])
                 b.loc[rows, "height_source"] = "override"
+                if "min_height" in fix:
+                    b.loc[rows, "min_height"] = float(fix["min_height"])
+                else:  # a top below the mapped bottom would turn the part inside out
+                    b.loc[rows, "min_height"] = b.loc[rows, "min_height"].clip(upper=float(fix["height"]) - 0.5).clip(lower=0)
             if fix.get("flat_roof"):
                 b.loc[rows, "flat_roof"] = True
         for a in o["add"]:

@@ -23,9 +23,9 @@ import pandas as pd
 import shapely
 from shapely.geometry import box
 
-from . import mesh
+from . import mesh, water
 from .areas import area_polygon_local, area_row
-from .config import BUILDS, LOCK_FILE, WORK, area_dir, load_config, load_sources
+from .config import BUILDS, LOCK_FILE, WORK, area_dir, lidar_source, load_config, load_sources
 from .frame import local_frame
 from .gltf import write_glb
 from .grid import BLOCK_LEVEL, Key, leaves_covering
@@ -213,8 +213,8 @@ def _masses(buildings: gpd.GeoDataFrame, level: int) -> list[tuple]:
 
 
 def _water_z() -> float:
-    cfg = load_config()
-    return float(cfg["water_level"]) - float(cfg["ground_datum"])
+    """Lake Michigan's surface (the lowest water drawn), local z."""
+    return water.lake_z()
 
 
 def _plane_residual(z: np.ndarray) -> float:
@@ -279,10 +279,11 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
             continue
         mb = mesh.MeshBuilder()
         if layer == "water":
-            # Water is flat at lake level; walls rise from it to the banks.
+            # Water is flat at its body's level (the lake's, or a measured lagoon's);
+            # walls rise from it to the banks.
             for c in _cells(key.bounds, GROUND_CELL * 2 ** key.level):
                 for poly in _polys(_clip_cell(geom, c)):
-                    mesh.add_flat(mb, poly, water_z)
+                    mesh.add_flat(mb, poly, water.level_at(poly))
         else:
             for c, max_len in cells:
                 for poly in _polys(_clip_cell(geom, c)):
@@ -298,8 +299,9 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
             skip = _skip_walls(key.bounds, ground.get("bridge"))
             for poly in _polys(geom):
                 poly = orient(poly, sign=1.0)
+                z = water.level_at(poly)
                 for ring in [poly.exterior, *poly.interiors]:
-                    mesh.add_walls(wb, np.asarray(ring.coords)[:, :2], water_z, dem.sample, skip)
+                    mesh.add_walls(wb, np.asarray(ring.coords)[:, :2], z, dem.sample, skip)
             if (arr := wb.arrays()) is not None:
                 arr.pop("_FEATURE_ID_0")
                 meshes.append({"name": "wall", "material": MAT_INDEX["wall"], "arrays": arr})
@@ -332,11 +334,14 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
         tol = _rules(key.level)["tol"]
         mb = mesh.MeshBuilder()
         features = []
-        lod2 = 0
+        lod2 = rejected = 0
         for fid, (_, b) in enumerate(buildings.iterrows()):
             base = float(b["base"])
             model = (roofs.get(b["id"]) if roofs and b["height_source"] == "lidar" and not b.get("flat_roof")
                      else None)
+            if model is not None and not roof_fits_lidar(model[0], b):
+                model = None
+                rejected += 1
             if model is not None:
                 # LoD 2.2 model from roofer: real roof shapes.
                 pos, nrm, idx = model
@@ -359,7 +364,7 @@ def _write_tile(out_dir, key: Key, ground: dict, buildings, dem, roofs: dict | N
     return {"uri": uri, "top": top, "bottom": bottom, "bytes": nbytes,
             "triangles": sum(len(m["arrays"]["indices"]) // 3 for m in meshes),
             "buildings": len(buildings), "masses": len(masses),
-            "lod2": lod2 if len(buildings) else 0}
+            "lod2": lod2 if len(buildings) else 0, "lod2_rejected": rejected if len(buildings) else 0}
 
 
 # ---------------------------------------------------------------- block worker
@@ -447,6 +452,46 @@ def _apply_overrides(buildings: gpd.GeoDataFrame, areas: list[int]) -> gpd.GeoDa
     return overrides.apply(buildings, areas, dem_at)
 
 
+ROOF_SLACK = 1.0         # m a roofer model may rise above the highest lidar point on the roof...
+ROOF_SLACK_SHARE = 0.02  # ...or this share of the building's height, if more: few points land on
+                         # the very top of a tower, so its highest point can sit below a real crown
+
+
+def roof_fits_lidar(pos: np.ndarray, b) -> bool:
+    """False for a roofer model that rises well above anything the lidar measured.
+
+    With few points, roofer sometimes finds only one side of a gabled roof and extends
+    that plane across the building: one-sided slopes up to twice the roof's height
+    (West Ridge: an 11 m wide house with its ridge at 6.2 m drawn rising to 8.8 m). On
+    an Old Town block 23% of models from the 2017 survey rose over 1 m above the highest
+    point, 1.3% with the denser 2022 survey. Those are drawn flat at the lidar height.
+    """
+    top = b.get("zmax")
+    if top is None or not np.isfinite(top):
+        return True
+    slack = max(ROOF_SLACK, ROOF_SLACK_SHARE * float(b.get("height") or 0.0))
+    return float(pos[:, 2].max()) <= float(top) + slack
+
+
+def stale_height_tags(b: pd.DataFrame, candidates) -> pd.Series:
+    """Candidates whose OSM height tags were already on the map before the survey flew.
+
+    Such a tag isn't evidence of a building finished after the survey (Sheridan Glen
+    has carried 21 floors since 2013 and is a low-rise), so the lidar wins. Looked up
+    in the OSM version history; unknown histories leave the candidate alone.
+    """
+    from .lidar import survey_start
+    from .osm_history import height_tags_since
+    out = pd.Series(False, index=b.index)
+    start = survey_start()
+    for i in candidates:
+        osm = b.at[i, "osm_id"]
+        if isinstance(osm, str):
+            since = height_tags_since(osm)
+            out.at[i] = since is not None and since < start
+    return out
+
+
 def gone_city_footprints(b: pd.DataFrame, density: pd.Series) -> pd.Series:
     """City footprints that OSM doesn't have, where the lidar sees bare ground.
 
@@ -505,6 +550,8 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
     # Not for podiums left around a tower mapped as a part (has_parts, see buildings.py).
     b["newer_than_lidar"] = (use & b["source_prev"].isin(["osm:height", "osm:levels"]) & (b["height_prev"] >= 40)
                              & (lidar_h < 0.5 * b["height_prev"]) & ~podium)
+    b["stale_osm_height"] = stale_height_tags(b, b.index[b["newer_than_lidar"]])
+    b.loc[b["stale_osm_height"], "newer_than_lidar"] = False
     use &= ~b["newer_than_lidar"]
     b["gone"] = gone_city_footprints(b, density)
     b.loc[use, "height"] = lidar_h[use].round(2)
@@ -526,6 +573,7 @@ def build(areas: list[int], build_name: str) -> dict:
     leaves = build_leaves(areas)
     buildings = load_buildings(areas)
     buildings = apply_lidar(buildings, {leaf.ancestor(BLOCK_LEVEL) for leaf in leaves})
+    water.build()  # per-body water levels, read by the tile workers
     buildings = _apply_overrides(buildings, areas)
     everything = buildings  # for the accuracy report
     buildings = buildings[~buildings["gone"].fillna(False).astype(bool)]
@@ -630,6 +678,7 @@ def build(areas: list[int], build_name: str) -> dict:
         "bytes": sum(m["bytes"] for m in metas.values()),
         "levels": {str(k): v for k, v in sorted(by_level.items())},
         "tile_size_m": cfg["tile_size"],
+        "lidar": lidar_source(),
         "sources": json.loads(LOCK_FILE.read_text()) if LOCK_FILE.exists() else {},
     }
     from .accuracy import report as accuracy_report

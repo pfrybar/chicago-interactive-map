@@ -73,3 +73,122 @@ def test_city_footprints_on_bare_ground_are_gone():
                       "year_built": [1958, 2019, 1958, 1958]})
     density = pd.Series([0.0, 0.0, 3.0, 0.0])
     assert gone_city_footprints(b, density).tolist() == [True, False, False, False]
+
+
+def test_crown_cells_separates_trees_from_poles():
+    from cim.trees import MIN_CROWN_CELLS, crown_cells
+    raw = np.zeros((20, 20), np.float32)
+    raw[5, 5] = 9.0                              # a light pole: one tall cell
+    yy, xx = np.mgrid[0:20, 0:20]
+    raw[(yy - 13) ** 2 + (xx - 13) ** 2 <= 9] = 8.0   # a crown 6 m across
+    raw[13, 13] = 10.0
+    c = crown_cells(raw, np.array([5, 13]), np.array([5, 13]), np.array([9.0, 10.0]))
+    assert c[0] < MIN_CROWN_CELLS <= c[1]
+
+
+def test_tree_mask_covers_carriageways_and_the_l_but_not_sidewalks_or_tunnels():
+    import pandas as pd
+    import shapely
+    from shapely.geometry import LineString
+    from cim.trees import _carriageways_and_rail
+    feats = gpd.GeoDataFrame(pd.DataFrame({
+        "highway": ["secondary", "footway", "secondary", None],
+        "railway": [None, None, None, "subway"],
+        "lanes": ["4", None, None, None], "tunnel": [None, None, "yes", None],
+        "bridge": [None, None, None, "yes"], "layer": [None, None, "-1", "2"],
+    }, dtype=object), geometry=[LineString([(0, 0), (100, 0)]), LineString([(0, 10), (100, 10)]),
+                  LineString([(0, 50), (100, 50)]), LineString([(0, 80), (100, 80)])])
+    m = _carriageways_and_rail(feats, (-10, -10, 110, 110))
+    assert shapely.contains_xy(m, 50, 4)        # inside a 4-lane carriageway (13.2 m wide)
+    assert not shapely.contains_xy(m, 50, 10)   # a footway: street trees stand there
+    assert not shapely.contains_xy(m, 50, 50)   # a road in a tunnel
+    assert shapely.contains_xy(m, 50, 87)       # under the elevated structure, near its edge
+
+
+def test_bridge_deck_fills_slots_between_lanes_and_sidewalks_over_water():
+    import pandas as pd
+    import shapely
+    from shapely.geometry import LineString
+    from cim.ground import _bridge_decks
+    # A road bridge (3 lanes, 9.9 m) with two sidewalks whose centerlines are 8.7 m away.
+    feats = gpd.GeoDataFrame(pd.DataFrame({
+        "highway": ["secondary", "footway", "footway"], "lanes": ["3", None, None],
+        "bridge": ["movable", "yes", "yes"], "tunnel": [None] * 3, "layer": ["1"] * 3,
+    }, dtype=object), geometry=[LineString([(0, -30), (0, 30)]), LineString([(8.7, -30), (8.7, 30)]),
+                                LineString([(-8.7, -30), (-8.7, 30)])])
+    water = box(-50, -20, 50, 20)
+    hw = feats["highway"]
+    deck = _bridge_decks(feats, pd.Series(True, index=feats.index), hw, water)
+    assert shapely.contains_xy(deck, 6.0, 0) and shapely.contains_xy(deck, -6.0, 0)   # the slots are filled
+    assert not shapely.contains_xy(deck, 6.0, 25)                                    # but only over water
+    assert not shapely.contains_xy(deck, 20.0, 0)                                    # and not beyond the deck
+
+
+def test_rail_profile_ignores_spikes_and_limits_grade():
+    from cim.rail import MAX_GRADE, fit_profile
+    s = np.arange(0, 200, 2.0)
+    z = np.full_like(s, 8.0)
+    z[50:52] = 10.5                      # a train or truss: +2.5 m over 4 m (the Wells bridge kink)
+    z[80:] += np.linspace(0, 0.8, 20)    # a real gentle rise at the end
+    out = fit_profile(s, z)
+    assert np.abs(out[45:57] - 8.0).max() < 0.3
+    assert (np.abs(np.diff(out)) / np.diff(s)).max() <= MAX_GRADE + 1e-9
+    assert out[-1] > 8.4                 # the real rise survives
+
+
+def test_roof_stats_counts_unclassified_tower_tops_above_a_building_class_podium():
+    import pandas as pd
+    from cim.lidar import BUILDING, UNCLASSIFIED, Dem, roof_stats
+    rng = np.random.default_rng(3)
+    dem = Dem(np.zeros((80, 80), np.float32), -10, -10, 1.0)
+    b = gpd.GeoDataFrame({"id": ["tower", "house"]}, geometry=[box(0, 0, 20, 20), box(30, 0, 40, 10)])
+    # Tower: walls and podium classed building up to 20 m, the roof at 180 m unclassified.
+    tx, ty = rng.uniform(1, 19, 3000), rng.uniform(1, 19, 3000)
+    tz = np.r_[rng.uniform(5, 20, 2000), np.full(1000, 180.0)]
+    tc = np.r_[np.full(2000, BUILDING), np.full(1000, UNCLASSIFIED)]
+    # House: roof at 8 m classed building, a tree over it at 15 m classed vegetation.
+    hx, hy = rng.uniform(31, 39, 800), rng.uniform(1, 9, 800)
+    hz = np.r_[np.full(600, 8.0), np.full(200, 15.0)]
+    hc = np.r_[np.full(600, BUILDING), np.full(200, 5)]
+    # Low building next to a tower: the neighbor's facade (unclassified) along one edge.
+    b = pd.concat([b, gpd.GeoDataFrame({"id": ["low"]}, geometry=[box(0, 30, 20, 50)])], ignore_index=True)
+    lx, ly = np.r_[rng.uniform(1, 19, 1000), rng.uniform(0.6, 1.4, 300)], np.r_[rng.uniform(31, 49, 1000), rng.uniform(31, 49, 300)]
+    lz = np.r_[np.full(1000, 14.0), rng.uniform(30, 220, 300)]
+    lc = np.r_[np.full(1000, BUILDING), np.full(300, UNCLASSIFIED)]
+    s = roof_stats(gpd.GeoDataFrame(b, geometry="geometry"), np.r_[tx, hx, lx], np.r_[ty, hy, ly], np.r_[tz, hz, lz],
+                   np.r_[tc, hc, lc].astype(np.uint8), dem).set_index("id")
+    assert s.loc["tower", "p95"] > 170
+    assert s.loc["house", "p95"] < 9
+    assert s.loc["low", "p95"] < 15
+
+
+def test_2017_trees_join_2022_only_where_2022_still_sees_vegetation(monkeypatch):
+    import pandas as pd
+    from cim import trees
+    from cim.grid import Key
+    old = pd.DataFrame({"x": [10.0, 50.0, 90.0], "y": [10.0, 10.0, 10.0], "height": [12.0, 12.0, 12.0],
+                        "radius": [3.4, 3.4, 3.4], "crown_cells": [40, 40, 40], "base": [0.0] * 3})
+    monkeypatch.setattr(trees, "_load_2017", lambda key: old)
+    new = pd.DataFrame({"x": [10.5], "y": [10.0], "base": [0.0], "height": [11.0], "radius": [3.2],
+                        "crown_cells": [35], "survey": ["cook2022"]})
+    # 2022 vegetation: branches at the second tree's spot; nothing at the third (cut down).
+    rng = np.random.default_rng(0)
+    x = np.r_[rng.normal(10, 1, 50), rng.normal(50, 1, 20)]
+    y = np.r_[rng.normal(10, 1, 50), rng.normal(10, 1, 20)]
+    h = np.r_[np.full(50, 11.0), np.full(20, 9.0)]
+    dem = Dem(np.zeros((20, 20), np.float32), 0, 0, 10.0)
+    out = trees.add_confirmed_2017(Key(2, 0, 0), new, x, y, h, dem)
+    assert len(out) == 2                                       # the 2022 tree + the confirmed one
+    added = out[out["survey"] != "cook2022"].iloc[0]
+    assert added["x"] == 50.0 and added["height"] == 9.0      # 2022's measured height
+
+
+def test_roof_models_rising_above_every_lidar_point_are_rejected():
+    from cim.tiles import roof_fits_lidar
+    pos = np.array([[0, 0, 3.5], [10, 0, 3.5], [10, 0, 8.8]])   # one plane rising to 8.8 m
+    assert not roof_fits_lidar(pos, {"zmax": 6.4})
+    assert roof_fits_lidar(pos, {"zmax": 8.3})                  # within 1 m: a real ridge
+    assert roof_fits_lidar(pos, {"zmax": float("nan")})         # no lidar: keep
+    tower = np.array([[0, 0, 0.0], [10, 0, 103.0]])
+    assert roof_fits_lidar(tower, {"zmax": 101.0, "height": 101.4})       # a crown within 2% of a 101 m tower
+    assert not roof_fits_lidar(tower, {"zmax": 98.0, "height": 98.9})     # 5 m over: flattened

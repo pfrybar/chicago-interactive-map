@@ -61,6 +61,8 @@ const MATERIALS: Record<string, Material> = {
   wall: new MeshLambertMaterial({ color: new Color(0.42, 0.40, 0.37) }),
   rail: new MeshLambertMaterial({ color: new Color(0.26, 0.23, 0.20) }),         // railbed gravel
   steel: new MeshStandardMaterial({ color: new Color(0.06, 0.08, 0.07), roughness: 0.7, metalness: 0.3 }), // CTA structure
+  concrete: new MeshLambertMaterial({ color: new Color(0.62, 0.61, 0.58) }),  // overpasses, Metra and Amtrak viaducts
+  deck: new MeshLambertMaterial({ color: new Color(0.19, 0.185, 0.18) }),     // overpass asphalt, as the roads
   rails: new MeshStandardMaterial({ color: new Color(0.35, 0.33, 0.31), roughness: 0.35, metalness: 0.8 }),
   ballast: new MeshLambertMaterial({ color: new Color(0.20, 0.18, 0.16) }),
   platform: new MeshLambertMaterial({ color: new Color(0.45, 0.44, 0.42) }),
@@ -131,7 +133,7 @@ export class City {
           mesh.receiveShadow = true  // trees don't cast: there are too many of them
           return
         }
-        if (['steel', 'rails', 'platform', 'canopy'].includes(key)) {
+        if (['steel', 'rails', 'platform', 'canopy', 'concrete'].includes(key)) {
           mesh.castShadow = true
           mesh.receiveShadow = true
           return
@@ -143,7 +145,9 @@ export class City {
           this.buildingMeshes.add(mesh)
         } else {
           mesh.receiveShadow = true
-          if (!['water', 'wall', 'steel', 'rails', 'ballast', 'platform', 'canopy', 'foliage', 'bark'].includes(key)) {
+          // Overpass decks count as ground, so walking crosses them; their concrete sides don't.
+          if (key === 'deck') mesh.castShadow = true
+          if (!['water', 'wall', 'steel', 'rails', 'ballast', 'platform', 'canopy', 'foliage', 'bark', 'concrete'].includes(key)) {
             mesh.geometry.computeBoundsTree()
             this.groundMeshes.add(mesh)
           }

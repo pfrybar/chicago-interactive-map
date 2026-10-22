@@ -42,7 +42,7 @@ export interface BuildInfo {
   overview: Overview
   attribution: Attribution[]
   frame: { enuToEcef: number[] }
-  report: { areas: { number: number; name: string }[]; buildings: number; created_at: string }
+  report: { areas: { number: number; name: string }[]; buildings: number; created_at: string; lidar?: string }
 }
 
 /** Meters from the camera within which street-level tiles show every tree. */

@@ -25,7 +25,7 @@ from shapely.geometry import box
 
 from . import mesh, water
 from .areas import area_polygon_local, area_row
-from .config import BUILDS, LOCK_FILE, WORK, area_dir, load_config, load_sources
+from .config import BUILDS, LOCK_FILE, WORK, area_dir, lidar_source, load_config, load_sources
 from .frame import local_frame
 from .gltf import write_glb
 from .grid import BLOCK_LEVEL, Key, leaves_covering
@@ -693,6 +693,7 @@ def build(areas: list[int], build_name: str) -> dict:
         "bytes": sum(m["bytes"] for m in metas.values()),
         "levels": {str(k): v for k, v in sorted(by_level.items())},
         "tile_size_m": cfg["tile_size"],
+        "lidar": lidar_source(),
         "sources": json.loads(LOCK_FILE.read_text()) if LOCK_FILE.exists() else {},
     }
     from .accuracy import report as accuracy_report

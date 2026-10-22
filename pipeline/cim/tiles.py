@@ -488,6 +488,56 @@ def roof_fits_lidar(pos: np.ndarray, b) -> bool:
     return float(pos[:, 2].max()) <= float(top) + slack
 
 
+STRAY_RISE = 20.0  # m the 2022 top must exceed the 2017 one by (and half again) to be checked
+ROOF_POINTS = 250  # returns in the top layer (lidar.TOP_LAYER) that make it a real roof
+
+
+def without_stray_tops(b: pd.DataFrame, lidar_h: pd.Series, blocks) -> tuple[pd.Series, pd.Series]:
+    """2022 lidar heights with tops made of stray returns replaced, and which ones changed.
+
+    The 2022 survey has clouds of noise well above some buildings: 140 returns 87-107 m
+    over a house, a few at 60 m over a garage. They are denser than lone returns, so the
+    roof statistics keep them (see lidar._supported). Noise belongs to one flight, so the
+    2017 survey is the referee, for a top that isn't building-class points and isn't
+    backed by a mapped OSM height (towers finished since 2017 carry one):
+    - a top more than STRAY_RISE m and half again above the highest 2017 return is noise
+      (not 2017's 95th percentile: around a tower and its podium, the two surveys' mixes
+      differ, and Kemper's 2017 percentile is half its 2022 one);
+    - where 2017 saw nothing above the ground, a top 5% far above the rest (more than
+      twice the 75th percentile plus 10 m) is noise, and the roof is the 75th percentile.
+    Real towers inside outlines drawn around a podium have the same percentiles (Kemper:
+    a 70 m 75th percentile under a 157 m top), but 2017 measured them too. Buildings
+    finished since 2017 that OSM maps without a height (The Parker, EMME) have a real
+    roof at the top: at least ROOF_POINTS returns. The noise clouds we found had 3-197.
+    Checked against the 2025 orthophotos (evidence: cook_ortho_2025): every sampled
+    footprint these lower is a shed, house, deck, podium or empty lot.
+    """
+    stray = pd.Series(False, index=b.index)
+    if lidar_source() != "cook2022":
+        return lidar_h, stray
+    h17 = b["id"].map(_heights_2017(blocks))
+    roof = b["p75"] - b["base_min"]
+    mapped = b["height_prev"].where(b["source_prev"].isin(["osm:height", "osm:levels"]))
+    n_top = b["n_top"] if "n_top" in b else 0.05 * b["n_used"]  # stats from before n_top
+    unsupported = (b["classes"] != "building") & ~(mapped >= 0.5 * lidar_h) & (n_top < ROOF_POINTS)
+    older = unsupported & (lidar_h > h17 + STRAY_RISE) & (lidar_h > 1.5 * h17)
+    unseen = unsupported & h17.isna() & (lidar_h > 2 * roof + 10)
+    out = lidar_h.where(~older, h17).where(~unseen, roof)
+    return out, (older | unseen).fillna(False).astype(bool)
+
+
+def _heights_2017(blocks) -> pd.Series:
+    """Highest 2017 return above each footprint's ground, where the 2017 survey has been read."""
+    paths = [WORK / "lidar" / f"{k.i}_{k.j}.roofs.parquet" for k in blocks]
+    r = [pd.read_parquet(p) for p in paths if p.exists()]
+    r = [d for d in r if len(d)]
+    if not r:
+        return pd.Series(dtype=float)
+    r = pd.concat(r, ignore_index=True).drop_duplicates("id")
+    r = r[r["n"] > 0]
+    return (r["zmax"] - r["base_min"]).set_axis(r["id"])
+
+
 def stale_height_tags(b: pd.DataFrame, candidates) -> pd.Series:
     """Candidates whose OSM height tags were already on the map before the survey flew.
 
@@ -554,6 +604,11 @@ def apply_lidar(buildings: gpd.GeoDataFrame, blocks) -> gpd.GeoDataFrame:
     # (Lake Point Tower's podium read 188 m). The podium covers most of it: use the median.
     podium = b["has_parts"].fillna(False).astype(bool) if "has_parts" in b else pd.Series(False, b.index)
     lidar_h = lidar_h.where(~podium, b["p50"] - b["base_min"])
+    stray_h, stray = without_stray_tops(b, lidar_h, blocks)
+    b["stray_top"] = stray & ~podium
+    lidar_h = lidar_h.where(~b["stray_top"], stray_h)
+    # The roof check (roof_fits_lidar) then holds roofer to the corrected top.
+    b["zmax"] = b["zmax"].where(~b["stray_top"], b["base_min"] + lidar_h)
     # Towers finished after the spring 2017 survey: lidar measured what stood there
     # before (110 North Wacker reads 34 m, not 249 m). When lidar is under half of a
     # mapped OSM height of 40 m or more, keep the mapping. (City floor counts are the

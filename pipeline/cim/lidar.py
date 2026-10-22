@@ -287,7 +287,8 @@ def roof_stats(buildings: gpd.GeoDataFrame, x, y, z, cls_, dem: Dem) -> pd.DataF
             rec.update(n=len(g), n_used=len(use), classes="building" if use is bld else ("all" if use is g else "building+unclassified"),
                        p50=float(np.percentile(zs, 50)), p75=float(np.percentile(zs, 75)),
                        p90=float(np.percentile(zs, 90)), p95=float(np.percentile(zs, 95)),
-                       p98=float(np.percentile(zs, 98)), zmax=float(zs.max()))
+                       p98=float(np.percentile(zs, 98)), zmax=float(zs.max()),
+                       n_top=int((zs >= np.percentile(zs, 95) - TOP_LAYER).sum()))
         out.append(rec)
     return pd.DataFrame(out)
 

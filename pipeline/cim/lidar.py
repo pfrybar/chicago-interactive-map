@@ -282,12 +282,60 @@ def roof_stats(buildings: gpd.GeoDataFrame, x, y, z, cls_, dem: Dem) -> pd.DataF
                     if cells >= 0.25 * area[k] / 4.0:
                         use = g[(g["c"] == BUILDING) | (g["c"] == UNCLASSIFIED)]
             zs = use["z"].values
+            if area[k] >= MAST_AREA:
+                zs = _supported(zs, px[pt_idx[use.index]], py[pt_idx[use.index]])
             rec.update(n=len(g), n_used=len(use), classes="building" if use is bld else ("all" if use is g else "building+unclassified"),
                        p50=float(np.percentile(zs, 50)), p75=float(np.percentile(zs, 75)),
                        p90=float(np.percentile(zs, 90)), p95=float(np.percentile(zs, 95)),
-                       p98=float(np.percentile(zs, 98)), zmax=float(zs.max()))
+                       p98=float(np.percentile(zs, 98)), zmax=float(zs.max()),
+                       n_top=int((zs >= np.percentile(zs, 95) - TOP_LAYER).sum()))
         out.append(rec)
     return pd.DataFrame(out)
+
+
+TOP_LAYER = 3.0      # m below the 95th percentile that counts as the top surface
+TOP_CELLS = 8        # connected 2 m cells a sparse top must span (dark tower roofs return little)
+TOP_DENSITY = 0.5    # or its points per cell, relative to the whole footprint's
+TOP_GAP = 10.0       # m of empty air under a top layer before it can be dropped
+MAST_AREA = 10.0     # m²; footprints this small are masts and spires, seen only in glimpses
+
+
+def _supported(z, x, y, rounds: int = 4) -> np.ndarray:
+    """Points of a footprint without a top layer that isn't a surface.
+
+    A handful of returns far above a shed (birds, cranes, noise the isolated-point filter
+    misses because it comes in small clusters) set its 95th percentile: a rail-yard hut
+    read 144 m from 7 of its 144 points. A real top is either dense like the rest of the
+    roof or, when the roof returns little (Leo Burnett), one connected patch of some size;
+    stray returns are scattered. Spires, masts and chimneys are thin too, but their
+    returns run all the way up, so only a top layer with empty air under it is dropped,
+    a few times at most.
+    """
+    for _ in range(rounds):
+        if len(z) < 10:
+            break
+        top = z >= np.percentile(z, 95) - TOP_LAYER
+        if top.all() or z[top].min() - z[~top].max() < TOP_GAP:
+            break
+        cells = np.c_[(x // 2).astype(np.int64), (y // 2).astype(np.int64)]
+        n_all = len(np.unique(cells, axis=0))
+        n_top = len(np.unique(cells[top], axis=0))
+        dense = top.sum() / n_top >= TOP_DENSITY * len(z) / n_all
+        wide = n_top >= TOP_CELLS and _largest_patch(np.unique(cells[top], axis=0)) >= TOP_CELLS
+        if dense or wide:
+            break
+        z, x, y = z[~top], x[~top], y[~top]
+    return z
+
+
+def _largest_patch(cells: np.ndarray) -> int:
+    """Size of the largest 8-connected group among integer grid cells."""
+    from scipy import ndimage
+    c = cells - cells.min(axis=0)
+    grid = np.zeros(c.max(axis=0) + 1, bool)
+    grid[c[:, 0], c[:, 1]] = True
+    labels, n = ndimage.label(grid, structure=np.ones((3, 3)))
+    return int(np.bincount(labels.ravel())[1:].max()) if n else 0
 
 
 def _footprint_ground(buildings, dem: Dem) -> list[tuple[float, float]]:

@@ -2,7 +2,7 @@ import geopandas as gpd
 import numpy as np
 from shapely.geometry import box
 
-from cim.lidar import BUILDING, GROUND, Dem, build_dem, roof_stats
+from cim.lidar import BUILDING, GROUND, Dem, _supported, build_dem, roof_stats
 from cim.roofs import _triangulate_surface
 
 
@@ -192,3 +192,20 @@ def test_roof_models_rising_above_every_lidar_point_are_rejected():
     tower = np.array([[0, 0, 0.0], [10, 0, 103.0]])
     assert roof_fits_lidar(tower, {"zmax": 101.0, "height": 101.4})       # a crown within 2% of a 101 m tower
     assert not roof_fits_lidar(tower, {"zmax": 98.0, "height": 98.9})     # 5 m over: flattened
+
+
+def test_stray_returns_above_a_shed_dont_set_its_height():
+    rng = np.random.default_rng(0)
+    # A 12 × 12 m shed roof at 4 m, eight lone returns scattered at 140 m.
+    x, y = rng.uniform(0, 12, 160), rng.uniform(0, 12, 160)
+    z = np.full(160, 4.0)
+    z[:8] = 140.0
+    x[:8] = [0.5, 11.5, 0.5, 11.5, 6.0, 3.0, 9.0, 6.0]
+    y[:8] = [0.5, 0.5, 11.5, 11.5, 6.0, 9.0, 3.0, 0.5]
+    assert np.percentile(_supported(z, x, y), 95) == 4.0
+    # A sparse tower roof (one return per few m²) above a dense podium is kept.
+    tx, ty = np.meshgrid(np.arange(0, 12, 2.0), np.arange(0, 12, 2.0))
+    x2 = np.r_[rng.uniform(0, 40, 2000), tx.ravel()]
+    y2 = np.r_[rng.uniform(0, 40, 2000), ty.ravel()]
+    z2 = np.r_[np.full(2000, 20.0), np.full(tx.size, 180.0)]
+    assert np.percentile(_supported(z2, x2, y2), 99) == 180.0

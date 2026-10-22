@@ -705,10 +705,18 @@
     "url": "https://usgs-lidar-public.s3.amazonaws.com/USGS_LPC_IL_4County_Cook_2017_LAS_2019/",
     "ept_json_sha256": "20ac4f4318a60f46c348ae3be2222edbb1b387da536a582aae7a2bcd08691850",
     "depth": 9,
-    "nodes_cached": 50119,
-    "bytes": 12419839472,
-    "retrieved_at": "2026-10-20T23:10:27+00:00",
+    "nodes_cached": 55163,
+    "bytes": 13945441722,
+    "retrieved_at": "2026-10-21T20:04:07+00:00",
     "license": "Public domain (U.S. Government work)"
+  },
+  "lidar_cook_2022": {
+    "url": "https://maps.cookcountyil.gov/lidar_2022/{tile}.las",
+    "density": 8,
+    "tiles_cached": 1260,
+    "bytes": 26721485231,
+    "retrieved_at": "2026-10-22T09:18:30+00:00",
+    "license": "Cook County metadata (CookCounty_2022_Classified_LAS): \"Access_Constraints: No restrictions apply to these data. Use_Constraints: None.\"\n"
   },
   "osm_illinois": {
     "url": "https://download.geofabrik.de/north-america/us/illinois-261018.osm.pbf",

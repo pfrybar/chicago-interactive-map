@@ -52,21 +52,30 @@ def _orientation(meta: dict) -> tuple[float, float]:
     return float(meta.get("computed_compass_angle") or 0.0), 0.0
 
 
-def _pano_view(img: Image.Image, yaw: float, pitch: float, hfov: float, width: int = 1600) -> Image.Image:
-    """A perspective view cut from an equirectangular panorama. `yaw` is relative to
-    the panorama's center column, in degrees."""
+def _pano_view(img: Image.Image, heading: float, pitch: float, hfov: float, rotation=None,
+               cam_heading: float = 0.0, width: int = 1600) -> Image.Image:
+    """A level perspective view cut from an equirectangular panorama, looking along
+    compass `heading` and `pitch` (degrees). With the panorama's computed `rotation`
+    (OpenSfM, world to camera) the cut is levelled even when the camera was tilted;
+    without it the panorama is assumed upright, its center column facing `cam_heading`."""
     height = width * 3 // 4
     src = np.asarray(img.convert("RGB"))
     h, w = src.shape[:2]
-    f = (width / 2) / math.tan(math.radians(hfov) / 2)
+    focal = (width / 2) / math.tan(math.radians(hfov) / 2)
+    hd, pt = math.radians(heading), math.radians(pitch)
+    fwd = np.array([math.sin(hd) * math.cos(pt), math.cos(hd) * math.cos(pt), math.sin(pt)])  # east, north, up
+    right = np.array([math.cos(hd), -math.sin(hd), 0.0])
+    up = np.cross(right, fwd)
     u, v = np.meshgrid(np.arange(width) - width / 2 + 0.5, np.arange(height) - height / 2 + 0.5)
-    ray = np.stack([u, -v, np.full_like(u, f)], -1)                     # x right, y up, z forward
-    p, yw = math.radians(pitch), math.radians(yaw)
-    rx = np.array([[1, 0, 0], [0, math.cos(p), math.sin(p)], [0, -math.sin(p), math.cos(p)]])
-    ry = np.array([[math.cos(yw), 0, math.sin(yw)], [0, 1, 0], [-math.sin(yw), 0, math.cos(yw)]])
-    d = ray @ (ry @ rx).T
-    lon = np.arctan2(d[..., 0], d[..., 2])
-    lat = np.arctan2(d[..., 1], np.hypot(d[..., 0], d[..., 2]))
+    d = fwd * focal + right * u[..., None] - up * v[..., None]
+    if rotation is not None:
+        d = d @ Rotation.from_rotvec(rotation).as_matrix().T      # into the camera: x right, y down, z forward
+        lon = np.arctan2(d[..., 0], d[..., 2])
+        lat = np.arctan2(-d[..., 1], np.hypot(d[..., 0], d[..., 2]))
+    else:
+        az = np.arctan2(d[..., 0], d[..., 1]) - math.radians(cam_heading)
+        lon = (az + math.pi) % (2 * math.pi) - math.pi
+        lat = np.arctan2(d[..., 2], np.hypot(d[..., 0], d[..., 1]))
     col = ((lon / (2 * math.pi) + 0.5) * w).astype(int) % w
     row = np.clip(((0.5 - lat / math.pi) * h).astype(int), 0, h - 1)
     return Image.fromarray(src[row, col])
@@ -88,7 +97,7 @@ def pose(photo: str, toward: tuple[float, float] | None = None, heading: float |
         heading = math.degrees(math.atan2(toward[0] - x, toward[1] - y)) % 360
     if meta.get("camera_type") in ("spherical", "equirectangular"):
         look = cam_heading if heading is None else heading
-        img = _pano_view(img, (look - cam_heading + 540) % 360 - 180, 0.0, PANO_FOV)
+        img = _pano_view(img, look, 0.0, PANO_FOV, meta.get("computed_rotation"), cam_heading)
         name += f"_{round(look)}"
         hfov, pitch, look_heading = PANO_FOV, 0.0, look
     else:

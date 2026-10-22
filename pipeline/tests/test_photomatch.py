@@ -19,6 +19,19 @@ def test_pano_view_looks_where_it_is_told():
     img[..., 0] = (np.arange(w) * 255 // (w - 1))[None, :]
     pano = Image.fromarray(img)
     center = lambda v: np.asarray(v)[v.height // 2, v.width // 2, 0]
-    ahead, right = _pano_view(pano, 0, 0, 60, 200), _pano_view(pano, 90, 0, 60, 200)
+    ahead = _pano_view(pano, 0, 0, 60, cam_heading=0, width=200)
+    right = _pano_view(pano, 90, 0, 60, cam_heading=0, width=200)
     assert abs(int(center(ahead)) - 128) < 3        # straight ahead is the middle column
     assert abs(int(center(right)) - 191) < 3        # 90° right is three quarters across
+
+
+def test_pano_view_uses_the_rotation_to_find_directions():
+    # The same azimuth-coded panorama, from a camera facing east (rotation: north -> east).
+    from scipy.spatial.transform import Rotation
+    w, h = 720, 360
+    img = np.zeros((h, w, 3), np.uint8)
+    img[..., 0] = (np.arange(w) * 255 // (w - 1))[None, :]
+    # World to camera for a level camera facing east: camera z = east, x = south, y = down.
+    r = Rotation.from_matrix(np.array([[0, -1, 0], [0, 0, -1], [1, 0, 0]])).as_rotvec()
+    east = _pano_view(Image.fromarray(img), 90, 0, 60, rotation=r, width=200)
+    assert abs(int(np.asarray(east)[75, 100, 0]) - 128) < 3   # looking east is the panorama's middle

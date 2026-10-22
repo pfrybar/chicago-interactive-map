@@ -187,10 +187,14 @@ def stack(raw: dict, extent: Polygon, layers: list[str], simplify: float = 0.0) 
         g = raw.get(layer)
         if g is None or g.is_empty:
             continue
-        g = shapely.make_valid(shapely.clip_by_rect(g, *extent.bounds))
+        # Stray lines left by make_valid can make the overlay below fail, so keep polygons only.
+        g = _clean(shapely.make_valid(shapely.clip_by_rect(g, *extent.bounds)))
         if simplify:
-            g = shapely.make_valid(g.simplify(simplify))
-        g = g.difference(above)
+            g = _clean(shapely.make_valid(g.simplify(simplify)))
+        try:
+            g = g.difference(above)
+        except shapely.errors.GEOSException:
+            g = shapely.set_precision(g, 0.01).difference(shapely.set_precision(above, 0.01))
         above = unary_union([above, g])
         g = _clean(g)
         if not g.is_empty:

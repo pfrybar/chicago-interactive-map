@@ -5,6 +5,7 @@
 #   ./dev eval [VIEWS]            screenshot viewpoints into eval/out/ (starts the viewer if needed)
 #   ./dev share                   public URL for the current build (Cloudflare quick tunnel); ./dev unshare stops it
 #   ./dev precompress [BUILD]     Brotli-compress a build's tiles for the shared link (default: the current build)
+#   ./dev photomatch PHOTO [--toward=X,Y]   a street photo beside the map from the same spot (data/work/photomatch/)
 #   ./dev smoke                   click a building and walk into a wall in headless Chromium
 #   ./dev test                    pipeline tests + TypeScript check
 #   ./dev areas                   list the 77 community areas
@@ -55,6 +56,13 @@ case "$cmd" in
   unshare)
     docker compose stop tunnel preview
     ;;
+  photomatch)
+    photo="$1"; shift
+    name=$(pipeline python -m cim photomatch-pose "$photo" "$@" | tail -1 | python3 -c "import json, sys; print(json.load(sys.stdin)['name'])")
+    docker compose up -d web >/dev/null
+    docker compose run --rm -e NAME="$name" eval sh -c "npm ci --no-audit --no-fund --loglevel=error >/dev/null && node photomatch.mjs"
+    pipeline python -m cim photomatch-compose "$name"
+    ;;
   smoke)
     docker compose up -d web >/dev/null
     docker compose run --rm eval sh -c "npm ci --no-audit --no-fund --loglevel=error >/dev/null && node smoke.mjs"
@@ -74,6 +82,6 @@ case "$cmd" in
     rm -rf data/work data/builds
     ;;
   *)
-    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"
     ;;
 esac

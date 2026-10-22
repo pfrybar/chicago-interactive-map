@@ -52,6 +52,13 @@ def main() -> None:
     im.add_argument("--radius", type=float, default=60.0)
     im.add_argument("--record", help="log a photo id used as evidence, e.g. mapillary:123")
 
+    pm = sub.add_parser("photomatch-pose", help="download a street photo and work out its camera pose")
+    pm.add_argument("photo", help="mapillary:<id>")
+    pm.add_argument("--toward", help="panoramas: local x,y to look at (use --toward=)")
+    pm.add_argument("--heading", type=float, help="panoramas: compass heading to look along")
+    pc = sub.add_parser("photomatch-compose", help="put a photo and its map render side by side")
+    pc.add_argument("name")
+
     sub.add_parser("areas", help="list community areas")
     loc = sub.add_parser("locate", help="convert latitude/longitude to local map meters (for viewpoints)")
     loc.add_argument("lat", type=float)
@@ -128,6 +135,13 @@ def main() -> None:
                 print(f"{p['id']:28s} {p['distance']:5.1f} m  heading {p['heading'] or 0:5.0f}°"
                       f"  toward target {p['bearing_to_target']:3d}°  {p['captured']}  "
                       f"{'360°' if p['panorama'] else ''}  {p.get('file', '')}")
+    elif a.cmd == "photomatch-pose":
+        from .photomatch import pose
+        toward = tuple(float(v) for v in a.toward.split(",")) if a.toward else None
+        pose(a.photo, toward, a.heading)
+    elif a.cmd == "photomatch-compose":
+        from .photomatch import compose
+        compose(a.name)
     elif a.cmd == "locate":
         from pyproj import Transformer
         from .frame import local_frame

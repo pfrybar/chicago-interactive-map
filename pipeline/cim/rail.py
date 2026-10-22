@@ -47,7 +47,7 @@ def _layer(v) -> int:
 def railways(feats) -> pd.DataFrame:
     """Rail lines that are above ground, with `is_l` and `elevated` flags."""
     r = feats[feats["railway"].isin(RAIL_TYPES) & (feats.geometry.geom_type == "LineString")].copy()
-    tunnel = r["tunnel"].isin(["yes", "culvert"]) | (r["layer"].map(_layer) < 0) | (r["covered"] == "yes")
+    tunnel = r["tunnel"].isin(["yes", "culvert", "building_passage"]) | (r["layer"].map(_layer) < 0) | (r["covered"] == "yes")
     r = r[~tunnel]
     r["is_l"] = r["railway"].isin(L_TYPES)
     r["elevated"] = r["bridge"].isin(["yes", "viaduct", "movable", "trestle"]) | (r["layer"].map(_layer) > 0)
@@ -80,45 +80,78 @@ def _samples(line: LineString):
     return s, shapely.get_x(pts), shapely.get_y(pts)
 
 
+RAIL_CLASS = 10  # ASPRS rail (the 2022 survey labels the rails themselves)
+
+
 def profile_block(key: Key) -> pd.DataFrame:
+    """Track heights sampled along every above-ground railway in a block.
+
+    Each sample takes, in order: the median of rail-class returns within 1.6 m (the
+    rails themselves; 2022 survey); for elevated track, the top surface around it,
+    skipping station canopies and anything inside a building; for track at grade, the
+    ground returns within 2 m. The last replaced the ground model, which includes road
+    bridge decks: south of Union Station the tracks rode up over every street bridge.
+    """
+    from scipy.spatial import cKDTree
     x0, y0, x1, y1 = key.bounds
     grown = (x0 - 20, y0 - 20, x1 + 20, y1 + 20)
     feats = load_features(grown)
     rails = railways(feats)
-    rails = rails[rails["elevated"] & rails.intersects(box(*grown))]
+    rails = rails[rails.intersects(box(*grown))]
     if not len(rails):
         return pd.DataFrame(columns=["way", "s", "z"])
     dem = load_dem(key)
     x, y, z, c = read_points(grown, load_config()["lidar"]["depth"])
     grid, gx, gy, cell = _dsm(x, y, z, c, dem, grown)
-    # Station canopies read 3-5 m above the deck (Washington/Wells), so samples near
-    # platforms and station roofs are dropped; the fit interpolates across them.
-    stations = feats[(feats["railway"] == "platform") | feats["building"].isin(["train_station", "roof"])]
+    # Station canopies read 3-5 m above the deck (Washington/Wells), and buildings over
+    # the tracks (Union Station's air rights) far more: no top-surface samples there.
+    stations = feats[(feats["railway"] == "platform") | feats["building"].notna()]
     covered = shapely.union_all(stations.geometry.buffer(3.0).values) if len(stations) else None
     if covered is not None:
         shapely.prepare(covered)
+    near = {}
+    for cls, radius in ((RAIL_CLASS, 1.6), (GROUND, 2.0)):
+        m = c == cls
+        near[cls] = (cKDTree(np.c_[x[m], y[m]]), z[m], radius) if m.sum() >= 3 else None
     rows = []
-    for way, line in zip(rails["osm_id"], rails.geometry):
+    for way, line, elevated in zip(rails["osm_id"], rails.geometry, rails["elevated"]):
         s, sx, sy = _samples(line)
         inside = (sx >= x0) & (sx < x1) & (sy >= y0) & (sy < y1)
         if not inside.any():
             continue
         s, sx, sy = s[inside], sx[inside], sy[inside]
-        j = ((sx - gx) / cell).astype(int)
-        i = ((sy - gy) / cell).astype(int)
-        vals = np.stack([grid[np.clip(i + di, 0, grid.shape[0] - 1), np.clip(j + dj, 0, grid.shape[1] - 1)]
-                         for di in (-1, 0, 1) for dj in (-1, 0, 1)])
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)  # samples with no points at all
-            zs = np.nanmedian(vals, axis=0)
+        zs = np.full(len(s), np.nan)
+        if near[RAIL_CLASS] is not None:
+            zs = _median_near(near[RAIL_CLASS], sx, sy)
+        todo = ~np.isfinite(zs)
+        if todo.any() and elevated:
+            j = ((sx - gx) / cell).astype(int)
+            i = ((sy - gy) / cell).astype(int)
+            vals = np.stack([grid[np.clip(i + di, 0, grid.shape[0] - 1), np.clip(j + dj, 0, grid.shape[1] - 1)]
+                             for di in (-1, 0, 1) for dj in (-1, 0, 1)])
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)  # samples with no points at all
+                top = np.nanmedian(vals, axis=0)
+            if covered is not None:
+                top[shapely.contains_xy(covered, sx, sy)] = np.nan
+            zs[todo] = top[todo]
+        elif todo.any() and near[GROUND] is not None:
+            zs[todo] = _median_near(near[GROUND], sx[todo], sy[todo]) + 0.3   # rail top above the ground
         ok = np.isfinite(zs)
-        if covered is not None:
-            ok &= ~shapely.contains_xy(covered, sx, sy)
         rows.append(pd.DataFrame({"way": way, "s": s[ok], "z": zs[ok]}))
     return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(columns=["way", "s", "z"])
 
 
-SETTINGS = "v2 no-station-canopies"  # cached blocks made with other settings are redone
+def _median_near(index, sx, sy) -> np.ndarray:
+    tree, zs, radius = index
+    out = np.full(len(sx), np.nan)
+    for k, hits in enumerate(tree.query_ball_point(np.c_[sx, sy], radius)):
+        if len(hits) >= 3:
+            out[k] = np.median(zs[hits])
+    return out
+
+
+SETTINGS = "v3 rail-class, at-grade from ground, no buildings"  # cached blocks made with other settings are redone
 
 
 def _stamp(key: Key):
@@ -162,9 +195,13 @@ def load_profiles(keys) -> pd.DataFrame:
 def deck_heights(line: LineString, s: np.ndarray, x, y, elevated: bool, profile: pd.DataFrame, dem) -> np.ndarray:
     """Top of the deck (rail base) at chainages `s`, in local meters."""
     ground = dem.sample(x, y) if dem is not None else np.zeros_like(s)
-    if not elevated:
-        return ground + 0.3
     p = profile.sort_values("s") if len(profile) else profile
+    if not elevated:
+        # At grade: the measured rail top (or ground beside the track), not the ground
+        # model, which rises over road bridges.
+        if len(p) >= 3:
+            return np.interp(s, p["s"].values, fit_profile(p["s"].values, p["z"].values)) - 0.2
+        return ground + 0.3
     if len(p):
         above = p["z"].values - (dem.sample(*_xy(line, p["s"].values)) if dem is not None else 0)
         good = (above > 3.0) & (above < 16.0)
@@ -298,13 +335,16 @@ def _outer_sides(tracks) -> dict[str, float]:
     return out
 
 
-def track_meshes(tracks, profiles: pd.DataFrame, dem, bounds, level: int) -> dict[str, mesh.MeshBuilder]:
+def track_meshes(tracks, profiles: pd.DataFrame, dem, bounds, level: int, buildings=None) -> dict[str, mesh.MeshBuilder]:
     """Meshes for the tracks whose segments fall in `bounds` at tile `level`.
 
     Each segment is drawn by the tile containing its midpoint, and columns sit at
     fixed chainages from each way's start, so neighboring tiles join seamlessly.
+    Track at grade under a building (`buildings`: footprints) isn't drawn. The L is
+    CTA steel; other elevated railways (Metra, Amtrak, freight) are concrete viaducts.
     """
-    out = {k: mesh.MeshBuilder() for k in ("steel", "rails", "ballast")}
+    out = {k: mesh.MeshBuilder() for k in ("steel", "rails", "ballast", "concrete")}
+    under = shapely.STRtree(buildings) if buildings is not None and len(buildings) else None
     x0, y0, x1, y1 = bounds
     by_way = dict(tuple(profiles.groupby("way"))) if len(profiles) else {}
     sides = _outer_sides(tracks)
@@ -313,6 +353,10 @@ def track_meshes(tracks, profiles: pd.DataFrame, dem, bounds, level: int) -> dic
         s, x, y = _samples(line)
         mx, my = (x[:-1] + x[1:]) / 2, (y[:-1] + y[1:]) / 2
         seg = (mx >= x0) & (mx < x1) & (my >= y0) & (my < y1)
+        if under is not None and not t.elevated and seg.any():
+            hidden = np.zeros(len(mx), bool)
+            hidden[np.unique(under.query(shapely.points(mx, my), predicate="within")[0])] = True
+            seg &= ~hidden
         if not seg.any():
             continue
         z = deck_heights(line, s, x, y, t.elevated, by_way.get(t.osm_id, pd.DataFrame(columns=["s", "z"])), dem)
@@ -323,11 +367,13 @@ def track_meshes(tracks, profiles: pd.DataFrame, dem, bounds, level: int) -> dic
             a, b = run[0], run[-1] + 2  # sample indices a..b-1
             keep = _thin(x[a:b], y[a:b], z[a:b])
             rx, ry, rz = x[a:b][keep], y[a:b][keep], z[a:b][keep]
-            if t.elevated:
+            if t.elevated and t.is_l:
                 _beam(out["steel"], rx, ry, rz, 0, 3.4, 0.5)                    # deck
                 if level == 0:
                     for off in (-1.1, 1.1):
                         _beam(out["steel"], rx, ry, rz - 0.5, off, 0.4, 1.0)    # girders
+            elif t.elevated:
+                _beam(out["concrete"], rx, ry, rz, 0, 4.4, 1.2)                 # viaduct slab
             elif level == 0:
                 _beam(out["ballast"], rx, ry, rz, 0, 3.2, 0.5)                   # railbed
             if level == 0 and t.is_l:

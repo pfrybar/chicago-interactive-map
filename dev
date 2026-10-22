@@ -4,6 +4,7 @@
 #   ./dev app                     run the viewer at http://localhost:5173
 #   ./dev eval [VIEWS]            screenshot viewpoints into eval/out/ (starts the viewer if needed)
 #   ./dev share                   public URL for the current build (Cloudflare quick tunnel); ./dev unshare stops it
+#   ./dev precompress [BUILD]     Brotli-compress a build's tiles for the shared link (default: the current build)
 #   ./dev smoke                   click a building and walk into a wall in headless Chromium
 #   ./dev test                    pipeline tests + TypeScript check
 #   ./dev areas                   list the 77 community areas
@@ -34,7 +35,12 @@ case "$cmd" in
     docker compose run --rm ${1:+-e VIEWS="$1"} eval sh -c \
       "npm ci --no-audit --no-fund --loglevel=error >/dev/null && node render.mjs"
     ;;
+  precompress)
+    build="${1:-$(python3 -c "import json; print(json.load(open('data/builds/manifest.json'))['current'])")}"
+    docker compose run --rm --no-deps -e UV_THREADPOOL_SIZE=8 web node scripts/precompress.mjs "../data/builds/$build"
+    ;;
   share)
+    "$0" precompress
     docker compose up -d preview tunnel
     echo "Building the viewer and opening a tunnel…"
     for _ in $(seq 1 90); do

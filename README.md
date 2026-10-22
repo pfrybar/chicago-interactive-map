@@ -42,6 +42,7 @@ FORCE=1 ./dev build all # rebuild tiles even if Snakemake thinks they're current
 ./dev test              # pipeline tests and TypeScript check
 ./dev smoke             # click-a-building and walk-into-a-wall test in headless Chromium
 ./dev share             # public link via a Cloudflare quick tunnel (production build); ./dev unshare stops it
+./dev precompress       # Brotli-compress the current build's tiles for the shared link (share does this first)
 ./dev eval              # screenshot every viewpoint into eval/out/ and check render budgets
 ./dev eval riverwalk    # just one viewpoint
 ./dev clean             # delete intermediate files and builds (downloads are kept)

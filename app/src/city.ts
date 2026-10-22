@@ -42,7 +42,7 @@ export interface BuildInfo {
   overview: Overview
   attribution: Attribution[]
   frame: { enuToEcef: number[] }
-  report: { areas: { number: number; name: string }[]; buildings: number }
+  report: { areas: { number: number; name: string }[]; buildings: number; created_at: string }
 }
 
 /** Meters from the camera within which street-level tiles show every tree. */
@@ -93,6 +93,17 @@ export class City {
   constructor(build: BuildInfo, camera: PerspectiveCamera, renderer: WebGLRenderer, frameMatrix: Matrix4) {
     const tiles = new TilesRenderer(build.base + 'tileset.json')
     this.tiles = tiles
+    // Every tile URL carries the build's id, so the server can let browsers cache tiles
+    // for good (a rebuild changes the id). See serveBuilds in vite.config.ts.
+    const version = build.report.created_at ?? build.name
+    tiles.registerPlugin({
+      name: 'BUILD_VERSION',
+      preprocessURL: (url: string) => {
+        const u = new URL(url, location.href)
+        u.searchParams.set('v', version)
+        return u.toString()
+      },
+    })
     // Screen-space error in pixels before a tile is swapped for its detailed children.
     // With 10 m error on 1 km tiles, full detail loads within roughly 1.3 km of the camera.
     tiles.errorTarget = matchMedia('(pointer: coarse)').matches ? 10 : 6
